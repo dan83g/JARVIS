@@ -1,0 +1,10 @@
+    {% extends "base.html" %}
+
+    {% block title %}
+        500
+    {% endblock %}   
+
+    {% block content %}
+                {% load static %}
+                <a href="/"><img src="{% static "/images/500.png" %}" alt="Упс, картинки пропала!" style="display:block;width:100%; height:100%;object-fit: cover;"></a>                
+    {% endblock %}

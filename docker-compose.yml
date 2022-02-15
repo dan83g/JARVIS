@@ -1,0 +1,175 @@
+version: '3.7'
+
+networks:
+    net:  
+
+services:
+  django:
+    image: jarvis/django:latest
+    container_name: jarvis_django
+    networks:
+      - net        
+    restart: always        
+    expose:
+      - 80
+      - 5555  
+    depends_on:
+      - redis
+      - mssql
+    volumes:
+      - ./data:/data
+    environment:
+      # количество попыток подключения к MSSQL и REDIS
+      - TRY_CONNECTIONS=20      
+      # DJANGO   
+      - DJANGO_PROJECT=JARVIS
+      - DJANGO_SETTINGS_MODULE=JARVIS.settings      
+      # AUTH
+      - AUTH_WINDOWS=1
+      # длительность сессии(в секундах), все временных запросы после истечения сессии удаляются из REDIS
+      - SESSION_PERIOD=28800            
+      # LOG
+      - DEBUG=1
+      - LOGLEVEL=ERROR
+      # TimeZone
+      - TZ=Europe/Moscow
+      # GUNICORN
+      - GUNICORN_HOST=0.0.0.0
+      - GUNICORN_PORT=80
+      # DB
+      - DB_HOST=mssql
+      - DB_PORT=1433
+      - DB_NAME=JARVIS
+      - DB_USER=sa
+      - DB_PASS=Mssql2017
+      - DB_DRIVER=ODBC Driver 17 for SQL Server
+      - DB_COMMAND_TIMEOUT=60
+      # CELERY
+      - CELERY=0
+      # FLOWER
+      - FLOWER=0      
+      - FLOWER_HOST=0.0.0.0      
+      - FLOWER_PORT=5555
+      # REDIS
+      - REDIS=1
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379       
+      - REDIS_DB_SESSIONS=0      
+      - REDIS_DB_CELERY=1
+      # SENTRY
+      - SENTRY=0
+      # Указать корреспондента, чтобы можно было в SENTRY определеить откуда прилетают ошибки
+      - SENTRY_HOSTNAME=UNKNOWN
+      - SENTRY_BACKEND=http://
+      - SENTRY_FRONTEND=http://
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"      
+
+  nginx:
+    image: jarvis/nginx:latest
+    container_name: jarvis_nginx
+    networks:
+     - net
+    restart: always
+    working_dir: /etc/nginx    
+    ports:
+    # слева порт на котором будет работать JARVIS
+      - "0.0.0.0:80:80"
+    volumes:
+      - ./keytab:/etc/nginx/keytab
+      - ./logs:/logs
+      - ./media:/media
+    depends_on:
+      - django      
+    cap_add:
+      - ALL
+    # tmpfs c размером 2Гб под cache ответов сервера
+    tmpfs:
+      - /cache:size=2G
+    environment:
+      # TimeZone
+      - TZ=Europe/Moscow
+      # CONFIG TEMPLATE
+      - TEMPLATE=sso
+      # дополнительная аутентификация(если не пройдет Kerberos-аутентификация, то Вас перекинет на NTLM-аутентификацию, и предложит ввести пользователя и пароль)
+      # (0, 1), если выключена, то при безуспешной аутентификации вернет 403 ошибку сервера
+      - BASIC_AUTH=1
+      # имя домена
+      - DOMAIN=EXAMPLE.COM
+      # IP сервера KDC
+      - KDC=192.168
+      # имя разрешенного сервиса/полное имя host-а на котором запускается контейнеры (допускается только DNS-имя)
+      - SERVICE=HTTP/jarvis.example.com
+      # LOGS, LOGLEVEL (debug, warn, error, crit, alert, emerg)
+      - LOGLEVEL=error
+      - ERROR_LOG=1
+      - ACCESS_LOG=0
+      # Добавление кеша (0,1)
+      - CACHE=1
+      # время хранения кеша в минутах (status code: 200, 301, 302 и т.д)
+      - CACHE_PERIOD=30
+      # время хранения кеша c ошибками в минутах (status code: 404, 500 и т.д.)
+      - CACHE_ERROR_PERIOD=3
+      # количество попыток подключения к django
+      - TRY_CONNECTIONS=20
+      # SERVER
+      - NGINX_HOST=0.0.0.0
+      - NGINX_PORT=80
+      # UPSTREAM
+      - CGI_HOST=django
+      - CGI_PORT=80
+      # FLOWER UPSTREAM
+      - FLOWER_HOST=django
+      - FLOWER_PORT=5555
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  mssql:
+    image: mssql2019:latest
+    container_name: jarvis_mssql
+    networks:
+      - net
+    restart: always
+    environment:      
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Mssql2017
+      - MSSQL_AGENT_ENABLED=true
+    volumes:
+      - ./mssql:/var/opt/mssql/data
+    ports:
+      - 1433:1433
+    expose:
+      - 1433
+
+  redis:    
+    image: redis:latest
+    container_name: jarvis_redis
+    networks:
+      - net
+    restart: always
+    ports:
+      - "0.0.0.0:6379:6379"
+    expose:
+      - 6379
+
+  watchtower:
+    image: watchtower:latest
+    container_name: watchtower
+    restart: always
+    logging:
+      driver: none
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=Europe/Moscow
+      - REPO_USER=jarvis
+      - REPO_PASS=jarvis
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_DEBUG=true
+      - WATCHTOWER_TRACE=false
+      - WATCHTOWER_INCLUDE_STOPPED=true
+      - WATCHTOWER_NO_RESTART=false
+      - WATCHTOWER_HTTP_API=false
+      - WATCHTOWER_TIMEOUT=10s
+      - WATCHTOWER_LABEL_ENABLE=true

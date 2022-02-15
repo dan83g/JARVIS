@@ -1,0 +1,15 @@
+    {% extends "base.html" %}
+
+    {% block title %}
+        Авторизация
+    {% endblock %}   
+
+    {% block content %}
+            <div class="divError">
+                <h2><p align="center">Упс, кино не будет</p></h2>
+                {% load static %}
+                <img src="{% static "/images/popcorn.jpg" %}" alt="Упс, картинки пропала!">                
+                <br>
+                <b><p align="center"><a href="/">Главная</a></p></b>
+            </div>
+    {% endblock %}

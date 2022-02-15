@@ -1,0 +1,23 @@
+    {% extends "base.html" %}
+
+    {% block title %}
+        JARVIS - {{value}}
+    {% endblock %}       
+
+    {% block links %}{% endblock %}
+
+    {% block content %}    
+        <script>
+            var server_data = {
+                typename: "{% if typename %} {{ typename }} {% else %} {% endif %}",
+                value: "{% if value %} {{ value }} {% else %} {% endif %}",
+                error: "{% if error %} {{ error }} {% else %} {% endif %}",
+                queries: [
+                    {% for item in queries %}  
+                        {name: "{{item.name}}", id: "{{item.id}}", icon_tag: "{{item.sources.0.icon_tag}}", iframe: {{item.sources.0.iframe|yesno:"true,false"}}},
+                    {% endfor %}  
+                ]
+            }
+        </script>
+        <script src="/static/code/search.js?{{SERVER_VERSION}}"></script>
+    {% endblock %}

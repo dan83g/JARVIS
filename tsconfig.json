@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "skipLibCheck": true,
+        "target": "es6",
+        "sourceMap": true,
+        "declaration": true,
+        "declarationDir": "./dist",
+        "lib": [
+            "es5",
+            "es6",
+            "dom",
+          ]
+    },
+    "exclude": [
+        "node_moudles",
+        "dist"
+    ]
+}

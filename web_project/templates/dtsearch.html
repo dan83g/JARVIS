@@ -1,0 +1,17 @@
+    {% extends "base.html" %}
+
+    {% block title %}dtSearch/JARVIS{% endblock %}
+
+    {% block content %}    
+    <script>
+        var server_data = {
+            no_toolbar: "{{no_toolbar|default_if_none:''}}",
+            query: "{{query|safe|default_if_none:''}}",
+            index_pathes: "{{index_pathes}}",
+            search_type: {% if searchtype %} {{searchtype}} {% else %} 1{% endif %},
+            ext: "{{ext}}",
+            dtsearch_server_url: "{{dtsearch_server_url}}"
+        }
+    </script>
+    <script src="/static/code/dtsearch.js?{{SERVER_VERSION}}"></script>
+    {% endblock %}

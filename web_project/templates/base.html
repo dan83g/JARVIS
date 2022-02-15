@@ -1,0 +1,19 @@
+<html>
+    <head>
+        <meta charset="UTF8">
+        <title>
+            {% block title %}{% endblock %}
+        </title>             
+        <link href="/static/favicon.ico" rel="icon" type="image/x-icon" />
+	    <script src="/static/cdn/webix/6.4.0/webix.js" type="text/javascript" charset="utf-8"></script>
+        <link rel="stylesheet" href="/static/cdn/font-awesome/5.15.1/css/all.css" type="text/css" charset="utf-8">
+        {% comment %} <link rel="stylesheet" href="/static/css/style.css" type="text/css" charset="utf-8"> {% endcomment %}
+        {% block links %}
+        {% endblock %}
+    </head>
+<body>
+    {% block content %}
+        Нет контента
+    {% endblock %}  
+</body>
+</html>

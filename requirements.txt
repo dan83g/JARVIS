@@ -1,0 +1,25 @@
+mssql-django
+django-jet
+pydantic
+kafka-python
+sql_metadata
+pandasql
+celery
+Django==2.2.24
+django-redis
+django-redis-sessions
+# django-remote-auth-ldap
+gunicorn
+Jinja2
+jsonpath
+jsonpath-ng
+kafka-python
+ldap3
+lxml
+pandas
+pandasql
+pyodbc
+redis
+redis-session
+requests
+sentry-sdk

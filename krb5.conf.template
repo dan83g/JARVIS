@@ -1,0 +1,20 @@
+[libdefaults]
+ default_realm = ${DOMAIN}
+ kdc_timesync = 1
+ ccache_type = 4
+ ticket_lifetime = 7d
+ renew_lifetime = 30d
+ rdns = false
+ forwardable = false
+ proxiable = false
+
+[realms]
+MARS = {
+ kdc = ${KDC}
+ admin_server = ${KDC}
+ default_domain = ${DOMAIN_LOWER}
+}
+
+[domain_realm]
+${DOMAIN_LOWER} =  ${DOMAIN}
+.${DOMAIN_LOWER} = ${DOMAIN}

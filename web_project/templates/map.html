@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}
+    Карты/JARVIS
+{% endblock %}  
+
+{% block links %}
+{% endblock %}   
+
+{% block content %}
+    <script>
+        var server_data = {
+            geoname: "{{geoname|default_if_none:''}}",
+            coordinates_hash: "{{coordinates_hash|default_if_none:''}}",
+            tiles:[
+                {% for tile in tiles %}
+                    {"name": '{{tile.name}}', "url": '{{tile.url|safe}}', "min_zoom": {{tile.min_zoom}}, "max_zoom": {{tile.max_zoom}}, "crs": "{{tile.crs}}"},
+                {% endfor %}
+            ]
+        }
+    </script>
+    <script src="/static/code/map.js?{{SERVER_VERSION}}"></script>             
+{% endblock %}

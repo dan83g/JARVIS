@@ -1,0 +1,59 @@
+    {% extends "base.html" %}
+
+    {% block title %}
+        Авторизация
+    {% endblock %}  
+
+    {% block content %}
+        <div id="container" style="width: 550px; margin: 0 auto; display: block; margin-top:80px;">
+            <h1 style="width: 550px; margin-left:250px; color:#fff; text-shadow:0 1px 25px whitesmoke;">АС "JARVIS"</h1>
+            <div id="webixtemplate" style="width: 400px; margin: 0 auto; display: block; margin-top:100px;">
+        </div>
+    
+        <script>
+            webix.ready(function(){
+
+                webix.ui({
+                    css: CONFIG.skin,
+                    container:"webixtemplate",                    
+                    rows: [
+                        {view:"text", id:"user", label:"<p class='fas fa-user fa-lg' style='margin-top:5px;margin-left:5px; color:#fff; text-shadow:0 1px 10px whitesmoke;'> Пользователь</p>", labelWidth:150, validate:webix.rules.isNotEmpty},
+                        {view:"text", id:"pass", label:"<p class='fas fa-key fa-lg' style='margin-top:5px;margin-left:5px; color:#fff; text-shadow:0 1px 10px whitesmoke;'> Пароль</p>", labelWidth:150, type:"password", validate:webix.rules.isNotEmpty},
+                        {height:25},
+                        { cols:[
+                            {},
+                            {   
+                                gravity:2,
+                                view:"button", 
+                                value: "Войти", 
+                                css:"btn_login", 
+                                click:function(){
+                                    // if ($$("user").getValue()!='' && $$("pass").getValue()!='')
+                                        webix.ajax("/login", {username:$$("user").getValue(), password:$$("pass").getValue()}).then(function(data){
+                                            data = data.json();
+                                            if (data.status == "success"){
+                                                webix.send("/", null, "GET")
+                                            }
+                                            else if (data.status == "error"){
+                                                // проверяем на массив
+                                                // if (Array.isArray(data.error)){                                                    
+                                                //     webix.message({ type:"error", text:data.error.join('<br>')})
+                                                // }
+                                                // else
+                                                {
+                                                    webix.message({ type:"error", text:data.error})
+                                                }
+                                            }
+                                            console.log(data.text());
+                                        });
+                                    // else
+                                    //     webix.message({ type:"error", text:"Введите имя пользователя и пароль" });
+                                }
+                            },
+                            {}
+                        ]}
+                    ]
+                });
+            });
+        </script>
+    {% endblock %}

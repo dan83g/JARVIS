@@ -1,0 +1,20 @@
+docker-build-master:
+
+    before_script:
+        - docker info
+    script:      
+      - docker login http://1.1.1.1 -u jarvis -p jarvis
+      # вписываем аргумент SERVER_VERSION
+      - docker build -t jarvis/django:$CI_COMMIT_BRANCH --build-arg SERVER_VERSION="$(date +'%y.%m.%d.%H')" -f ./django.dockerfile .
+      - docker push jarvis/django:$CI_COMMIT_BRANCH
+      # nginx
+      - docker build -t jarvis/nginx:$CI_COMMIT_BRANCH -f ./nginx.dockerfile .
+      - docker push jarvis/nginx:$CI_COMMIT_BRANCH
+      # nginx debug
+      - docker build -t jarvis/nginx:debug -f ./nginx_debug.dockerfile .
+      - docker push jarvis/nginx:debug
+      # clear crumbs
+      - docker system prune -f
+    only:      
+      - develop
+      - latest

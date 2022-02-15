@@ -1,0 +1,12 @@
+{
+    "python.linting.flake8Enabled": true,
+    "python.linting.enabled": true, 
+    "python.linting.flake8Args": ["--ignore=E501,W504,W503"],  // E24,W504
+    "python.languageServer": "Pylance",
+    "python.autoComplete.extraPaths": [
+        "./web_project"
+    ],
+    "python.analysis.extraPaths": [
+        "./web_project"
+    ],
+}

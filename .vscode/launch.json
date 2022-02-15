@@ -1,0 +1,53 @@
+{
+    // npx webpack --config webpack.config.js
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "chrome",
+            "request": "launch",
+            "name": "Launch Chrome",
+            "url": "http://localhost:8000",
+            // "webRoot": "${workspaceFolder}",
+            "webRoot": "${workspaceFolder}/static/code/**",
+            "breakOnLoad": true,
+            "sourceMaps": true,
+        },      
+        {
+            "name": "Python: Django",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}\\web_project\\manage.py",
+            // "program": "manage.py",
+            "args": [
+                "runserver",
+                "0.0.0.0:8000",
+                "--noreload"
+            ],
+            "django": false
+        },
+        {            
+            "type": "node",
+            "request": "launch",
+            "name": "webpack",
+            "program": "${workspaceFolder}/node_modules/webpack/bin/webpack.js",
+            "args": [                
+                // "-d",
+                // "--inline",
+                "--progress",
+                "--mode",
+                "production",
+                "--config",                
+                "webpack.config.js"
+            ],
+            // "cwd": "${workspaceFolder}",
+        }  
+    ],
+    "compounds": [
+        {
+          "name": "Server/Client",
+        //   "configurations": ["Python: Django", "Launch Chrome", "Attach to Chrome"],
+          "configurations": ["Python: Django", "Launch Chrome"],
+        //   "preLaunchTask": "${defaultBuildTask}"
+        }
+      ]    
+}
