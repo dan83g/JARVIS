@@ -89,19 +89,19 @@ def index(request, typename: str = None, name: str = None):
 @ViewMethod(method=['GET'])
 @ViewAuth()
 @ViewRmVaryHeader()
-def query(request, md5hash: str = None):
+def query(request, hash: str = None):
     """query from page
 
-    :param md5hash: index in redis cache for retrieving cached query, defaults to None
-    :type md5hash: str, optional
+    :param hash: index in redis cache for retrieving cached query, defaults to None
+    :type hash: str, optional
     """
 
-    if not md5hash:
+    if not hash:
         return Response.json_response(message='Присланы некоректные данные', status_code=400)
 
     # retrieving query from redis cache
     try:
-        init_dict = cache.get(str(md5hash))
+        init_dict = cache.get(str(hash))
         if not init_dict:
             raise ValueError('Запрос отсутсвует в REDIS')
     except Exception as error:
@@ -128,58 +128,3 @@ def query(request, md5hash: str = None):
 
     # all other
     return Response.json_data_response(data=result, message=query.errors_as_string)
-
-
-# @ViewMethod(method=['GET'])
-# @ViewAuth()
-# @ViewInputValidation(model=forms.SearchModel)
-# @ViewRmVaryHeader()
-# def query_alt(request, typename: str = None, name: str = None):
-#     """alternative query view for queries from other jarvis servers
-
-#     :param typename: name of type, defaults to None
-#     :type typename: str, optional
-#     :param name: name of query, defaults to None
-#     :type name: str, optional
-#     """
-#     if not typename or not name:
-#         return Response.json_response(message='Запрос отсутсвует в БД или отсутсвует доступ', status_code=400)
-
-#     # retrieving data from sql
-#     query = models.queries.objects.filter(
-#         # only active queries
-#         Q(active=True),
-#         # only active types
-#         Q(typename__active=True),
-#         # only permitted queries
-#         Q(cpi=True),
-#         typename__typename=typename,
-#         name=name
-#     ).prefetch_related('source').first()
-
-#     # если отсутсвует в БД
-#     if not query:
-#         return Response.json_response(message='Запрос отсутсвует в БД или отсутсвует доступ')
-
-#     # подготавливаем данные
-#     init_dict = query.to_dict(
-#         search_text=request.pydantic_model.value,
-#         username=request.user.username)
-
-#     # searcher class init
-#     try:
-#         query = searcher(init_dict=init_dict, with_preparation=True)
-#     except Exception as error:
-#         return Response.json_response(message=f'Ошибка подготовки запроса: {error}')
-
-#     # executing query
-#     is_data, response = query.execute()
-
-#     if not response and query.errors:
-#         return Response.json_response(message=query.errors_as_string)
-
-#     # if is not data, redirect (iframe)
-#     if not is_data:
-#         return redirect(response)
-
-#     return Response.json_data_response(data=response, message=query.errors_as_string)
