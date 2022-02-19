@@ -73,7 +73,6 @@ services:
     restart: always
     working_dir: /etc/nginx    
     ports:
-    # слева порт на котором будет работать JARVIS
       - "0.0.0.0:80:80"
     volumes:
       - ./keytab:/etc/nginx/keytab
