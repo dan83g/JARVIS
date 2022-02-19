@@ -10,7 +10,7 @@ broker = 'redis://{host}:{port}/{db}'.format(
     port=os.environ.get('REDIS_PORT', default=6379),
     db=os.environ.get('REDIS_DB_CELERY', default=1))
 
-project = os.environ.get('DJANGO_PROJECT', default='web_project')
+project = os.environ.get('DJANGO_PROJECT', default='django_project')
 
 # экземпляр класса celery, localhost или redis-контейнер
 app = Celery(project, broker=broker, backend=broker)

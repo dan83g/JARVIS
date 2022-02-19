@@ -25,7 +25,7 @@ RUN apt-get update -qq \
     && groupadd -r docker && useradd -r -g docker dockeruser
 
 USER dockeruser
-COPY ./web_project /opt/site/web_project
+COPY ./django_project /opt/site/django_project
 COPY ./entrypoint_django.sh /entrypoint.sh
 # COPY ./pip.conf /etc/pip.conf
 COPY ./requirements.txt /requirements.txt
@@ -36,6 +36,6 @@ RUN $(command -v pip) install --user -r /requirements.txt \
 ARG SERVER_VERSION=unknown
 ENV SERVER_VERSION=${SERVER_VERSION}
 EXPOSE 80 5555
-WORKDIR /opt/site/web_project
+WORKDIR /opt/site/django_project
 ENTRYPOINT ["/entrypoint.sh"]
 # для alpine ENTRYPOINT ["sh","/entrypoint.sh"]

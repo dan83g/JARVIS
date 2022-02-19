@@ -9,7 +9,7 @@
  proxiable = false
 
 [realms]
-MARS = {
+${DOMAIN} = {
  kdc = ${KDC}
  admin_server = ${KDC}
  default_domain = ${DOMAIN_LOWER}

@@ -32,7 +32,7 @@ run_gunicorn() {
 run_celery() {
     local project="$1"
     echo "$(date) - CELERY WORKERS AND CELERY BEAT are starting"
-    [ -e /opt/site/web_project/celerybeat.pid ] && unlink /opt/site/web_project/celerybeat.pid && echo "$(date) - celerybeat.pid has been deleted" 
+    [ -e /opt/site/django_project/celerybeat.pid ] && unlink /opt/site/django_project/celerybeat.pid && echo "$(date) - celerybeat.pid has been deleted" 
     celery -A "$project" worker -l info &
     celery -A "$project" beat -l info -S django
 }
@@ -59,7 +59,7 @@ fi
 
 # migrate current database
 echo "$(date) - Aplying database migrations"
-python /opt/site/web_project/manage.py migrate
+python /opt/site/django_project/manage.py migrate
 
 # CELERY
 if [ "${CELERY}" = "1" ]; then

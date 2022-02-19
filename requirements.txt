@@ -8,7 +8,6 @@ celery
 Django==2.2.24
 django-redis
 django-redis-sessions
-# django-remote-auth-ldap
 gunicorn
 Jinja2
 jsonpath
