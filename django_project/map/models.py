@@ -1,7 +1,5 @@
 from django.db import models
 from django.core.validators import RegexValidator
-from typing import List, Dict
-import re
 
 
 CHOICE_PROTOCOL = (
@@ -95,30 +93,6 @@ class coordinate(models.Model):
     class Meta:
         verbose_name = 'Координаты'
         verbose_name_plural = 'Координаты'
-
-    def get_geo_json_coordinates(self, text_with_coordinates: str) -> List[Dict]:
-        result_list = []
-        for match in re.finditer(self.regexp, text_with_coordinates):
-            named_groups = match.groupdict()
-            if not ({'lat', 'long', 'lat_dec', 'long_dec'} <= set(named_groups.keys())):
-                continue
-
-            try:
-                coord_long = float(f"{named_groups.get('long')}.{named_groups.get('long_dec')}")
-                coord_lat = float(f"{named_groups.get('lat')}.{named_groups.get('lat_dec')}")
-            except Exception:
-                continue
-
-            # in GeoJson lat after long
-            result_list.append({
-                "type": "Feature",
-                "properties": {
-                    "title": named_groups.get('text', '')},
-                "geometry": {
-                    "type": "Point",
-                    "coordinates": [coord_long, coord_lat]}
-            })
-        return result_list
 
     def __str__(self):
         return self.name

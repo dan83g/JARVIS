@@ -25,8 +25,8 @@ class MapCoordinates(BaseModel):
     :param hash: hash of list geo json coordinates (optional)
     :type hash: string
     """
-    coordinates: str = None
-    coordinates_hash: str = None
+    coordinates: Optional[str] = None
+    coordinates_hash: Optional[str] = None
 
 
 class MapIndexModel(BaseModel):

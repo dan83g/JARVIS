@@ -1,14 +1,14 @@
 from django.shortcuts import render
-from django.core.cache import cache
-from JARVIS.enums import SERVER_VERSION, REDIS_CACHE_TTL
+from JARVIS.enums import SERVER_VERSION
 from lib.response import Response
 from lib.handlers import Handler, HandlerType
 from lib.decorators import (
     ViewAuth, ViewExcept, ViewMethod, ViewInputValidation)
-from lib.encryption import md5hash
-from .import service
+from .service import CoordinatesCache, Coordinates
 from .import models
 from .import forms
+import logging
+logger = logging.getLogger(__name__)
 
 
 @ViewMethod(method=['GET'])
@@ -18,7 +18,7 @@ from .import forms
 def index(request):
 
     # getting tile servers data
-    tiles = models.tile_server.objects.filter(active=True).order_by('priority')
+    tiles = models.tile_server.objects.filter(active=True).first() .order_by('priority')
     if not tiles:
         return Response.json_response(message='В БД отсутствуют данные о тайловых серверах')
 
@@ -40,10 +40,12 @@ def index(request):
 
     # if present text with coordinates
     if request.pydantic_model.coordinates:
-        coordinates_list = service.get_geo_json_coordinates(request.pydantic_model.coordinates)
-        coordinates_hash = md5hash(coordinates_list)
-        cache.set(coordinates_hash, coordinates_list, timeout=REDIS_CACHE_TTL)
-        context.update({'coordinates_hash': coordinates_hash})
+        coordinates = Coordinates(user=request.user).get_geojson_coordinates(
+            text_with_coordinates=request.pydantic_model.coordinates,
+            hash=None
+        )
+        hash = CoordinatesCache.set(request.user, coordinates)
+        context['coordinates_hash'] = hash
     return render(request, template_name='map.html', context=context)
 
 
@@ -52,7 +54,7 @@ def index(request):
 @ViewInputValidation(model=forms.MapGeoName)
 @ViewExcept(message="Ошибка получения геоданных")
 def geoname_search(request):
-    """getting data about geonames
+    """getting geodata
     """
     source = models.sources.objects.filter(active=True, source="GEONAMES").first()
     if not source:
@@ -81,14 +83,8 @@ def geoname_search(request):
 @ViewInputValidation(model=forms.MapCoordinates)
 @ViewExcept(message="Ошибка извлечения координат")
 def coordinates_search(request):
-    coordinates_list = []
-    if request.pydantic_model.coordinates_hash:
-        try:
-            coordinates_list = cache.get(str(request.pydantic_model.coordinates_hash))
-            if not coordinates_list:
-                raise ValueError('Запрос отсутсвует в REDIS')
-        except Exception as error:
-            return Response.json_response(message=f'Координаты отсутсвуют в REDIS: {error}')
-    elif request.pydantic_model.coordinates:
-        coordinates_list = service.get_geo_json_coordinates(request.pydantic_model.coordinates)
-    return Response.json_data_response(data=coordinates_list)
+    coordinates = Coordinates(user=request.user).get_geojson_coordinates(
+        text_with_coordinates=request.pydantic_model.coordinates,
+        hash=request.pydantic_model.coordinates_hash
+    )
+    return Response.json_data_response(data=coordinates)
