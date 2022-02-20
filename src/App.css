@@ -1,0 +1,176 @@
+.app {
+  text-align: center;
+  display: flex;
+  flex-flow: column nowrap;
+  justify-content: space-between;
+  height: 100vh;
+  /* max-height: 100vh; */
+  /* overflow-y: auto; */
+  overflow: hidden;
+}
+
+.app-header {
+  display: flex;
+  flex-flow: row nowrap;
+  /* flex-direction: row;
+  flex-wrap: nowrap; */
+  justify-content: space-between;
+  min-width: 100vw;
+}
+
+
+.z-index-max {
+  z-index: 65535;
+}
+
+/* logo */
+.logo {
+  /* position: absolute;
+  top: 0;
+  left: 0; */
+  align-self: flex-start;
+  margin-top: 0.5rem;
+  margin-left: 0.5rem;
+}
+
+.logo.light {
+  filter: invert(100%);
+}
+
+/* search input */
+.border-radius-10 {
+  border-radius: 10px!important;
+}
+
+.p-input-icon-right > .suffix, .p-input-icon-right > .suffix:focus {
+  height: 100%;
+  right: 0rem!important;
+  top: 0rem!important;
+  margin-top: 0rem!important;
+  border: none!important;
+  outline: none!important;
+	outline-style: none!important;
+	box-shadow: none!important;
+	border-color: transparent!important;  
+}
+
+/* type filter */
+.type-filter {
+  justify-content: center!important;
+  height: 1.75rem;
+  width: 100%;
+}
+
+.type-filter .p-inputtext {
+  padding-top: 0.1rem;
+  padding-left: 0.5rem;
+}
+
+/* date filter */
+.date-filter .p-button {
+  justify-content: center!important;
+  height: 1.75rem;
+  padding: 0.5rem;
+}
+
+/* result-tabview */
+.tabview-result .p-tabview-title, .tabview-result .p-tabview-close {
+  margin-left: .5rem;
+}
+
+.tabview-result i {
+  vertical-align: middle;
+}
+
+.p-tabview .p-tabview-panels {
+  padding: 0rem!important;
+}
+
+/* datatable */
+.p-filter-column.no-filter-icon .p-column-filter-menu-button {
+  display: none!important;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  padding: 0.5rem 0.5rem;
+  /* flex: 0 1 auto; */
+  /* flex-basis: 100%; */
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  padding: 0.5rem 0.5rem;
+  /* flex: 0 1 auto; */
+  /* flex-basis: 100%; */
+}
+
+.p-datatable .p-column-filter input[type="text"] {
+  border-radius: 0.5rem!important;
+}
+
+.p-datatable .p-column-header-content {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* table {
+  display: flex; height: 100%; flex-direction: column;
+}
+
+tbody {
+  flex: 1;
+  overflow: auto;
+} */
+
+/* accordion  */
+.p-fieldset.p-fieldset-toggleable .p-fieldset-legend a {
+  height: 1rem;
+}
+
+/* theme in settings */
+.p-speeddial-item a[role="menuitem"] {
+  background-color: var(--primary-color) !important;
+  color: var(--primary-color-text) !important;
+}
+
+#selection-theme .p-button {
+  width: 16px!important;
+  min-width: 16px!important;
+  height: 16px!important;
+  padding: 2px!important;
+  border: 1px solid!important;
+}
+
+#selection-theme .p-button #arya-blue {background-color: #64B5F6}
+#selection-theme .p-button #arya-green {background-color: #81C784}
+#selection-theme .p-button #arya-orange {background-color: #FFD54F}
+#selection-theme .p-button #arya-purple {background-color: #BA68C8}
+#selection-theme .p-button #bootstrap4-light-blue {background-color: #007bff}
+#selection-theme .p-button #bootstrap4-dark-blue {background-color: #8dd0ff}
+#selection-theme .p-button #bootstrap4-light-purple {background-color: #883cae}
+#selection-theme .p-button #bootstrap4-dark-purple {background-color: #c298d8}
+#selection-theme .p-button #fluent-light {background-color: #0078d4}
+#selection-theme .p-button #luna-amber {background-color: #FFE082}
+#selection-theme .p-button #luna-green {background-color: #C5E1A5}
+#selection-theme .p-button #luna-blue {background-color: #81D4FA}
+#selection-theme .p-button #luna-pink {background-color: #F48FB1}
+#selection-theme .p-button #md-dark-deeppurple {background-color: #CE93D8}
+#selection-theme .p-button #md-dark-indigo {background-color: #9FA8DA}
+#selection-theme .p-button #md-light-deeppurple {background-color: #673AB7}
+#selection-theme .p-button #md-light-indigo {background-color: #3F51B5}
+#selection-theme .p-button #mdc-dark-deeppurple {background-color: #CE93D8}
+#selection-theme .p-button #mdc-dark-indigo {background-color: #9FA8DA}
+#selection-theme .p-button #mdc-light-deeppurple {background-color: #673AB7}
+#selection-theme .p-button #mdc-light-indigo {background-color: #3F51B5}
+#selection-theme .p-button #nova {background-color: #007ad9}
+#selection-theme .p-button #nova-accent {background-color: #007ad9}
+#selection-theme .p-button #nova-alt {background-color: #007ad9}
+#selection-theme .p-button #rhea {background-color: #7B95A3}
+#selection-theme .p-button #saga-blue {background-color: #2196F3}
+#selection-theme .p-button #saga-green {background-color: #4CAF50}
+#selection-theme .p-button #saga-orange {background-color: #FFC107}
+#selection-theme .p-button #saga-purple {background-color: #9C27B0}
+#selection-theme .p-button #tailwind-light {background-color: #4F46E5}
+#selection-theme .p-button #vela-blue {background-color: #64B5F6}
+#selection-theme .p-button #vela-green {background-color: #81C784}
+#selection-theme .p-button #vela-orange {background-color: #FFD54F}
+#selection-theme .p-button #vela-purple {background-color: #BA68C8}

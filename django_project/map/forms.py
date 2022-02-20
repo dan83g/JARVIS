@@ -10,10 +10,6 @@ class MapUserDataModel(BaseModel):
     data: dict = None
 
 
-class Get_MapUserDataModel(MapUserDataModel):
-    id: int
-
-
 class MapGeoName(MapUserDataModel):
     geoname: str
 

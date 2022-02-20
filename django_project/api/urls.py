@@ -17,5 +17,5 @@ urlpatterns = [
     path('v1/query.data', views.query_data),
 
     # user
-    path('v1/user.settings', UserSettingsView.as_view()),
+    path('v1/user', UserSettingsView.as_view()),
 ]

@@ -25,22 +25,30 @@
             ],
             "django": false
         },
-        {            
+        {
+            "type": "vscode-edge-devtools.debug",
+            "request": "launch",
+            "name": "Launch Edge DevTools",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
+            "type": "pwa-chrome",
+            "request": "launch",
+            "name": "Chrome",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}"
+        },
+        {
             "type": "node",
             "request": "launch",
-            "name": "webpack",
-            "program": "${workspaceFolder}/node_modules/webpack/bin/webpack.js",
-            "args": [                
-                // "-d",
-                // "--inline",
-                "--progress",
-                "--mode",
-                "production",
-                "--config",                
-                "webpack.config.js"
-            ],
-            // "cwd": "${workspaceFolder}",
-        }  
+            "name": "yarn start",
+            "runtimeExecutable": "yarn",
+            "cwd": "${workspaceFolder}",
+            "runtimeArgs": ["start"],
+            "port": 3000
+        }        
+
     ],
     "compounds": [
         {
