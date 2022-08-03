@@ -1,12 +1,16 @@
-from django.urls import path, re_path
-from . import views
+from django.urls import re_path, path
+from api.views import type_list
+from .views import (SearchView, query, type_detect)
+
 
 urlpatterns = [
-    # index
-    path('', views.index),
-    re_path(r'^(?P<typename>[-_\w]+)/$', views.index),
-    re_path(r'^(?P<typename>[-_\w]+)/(?P<name>[-_\w()]+)/$', views.index),
+    path('type.list', type_list),
 
-    # query
-    re_path('^query/(?P<hash>[a-f0-9]{32})$', views.query),
+    path('type.detect', type_detect),
+
+    # index
+    re_path(r'^((?P<typename>[-_\w]+)/((?P<name>[-_\w()]+)/)?)?$', SearchView.as_view()),
+
+    # single query
+    re_path('^query/(?P<hash>[a-f0-9]{32})$', query),
 ]

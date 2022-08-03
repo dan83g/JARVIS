@@ -1,17 +1,17 @@
 import os
-
-
-def to_bool(value: str) -> bool:
-    return True if value.lower() in ('1', 'true', 'on', 'yes') else False
+from lib.routine import to_bool
 
 
 DEFAULT_HOST = 'localhost'
 
-# TimeZone
-TZ = os.environ.get('TZ', default='Europe/Moscow')
-
 # Server vesrion
 SERVER_VERSION = os.environ.get('SERVER_VERSION', default="unknown")
+
+# Error response code
+HTTP_ERROR_CODE = 206
+
+# TimeZone
+TZ = os.environ.get('TZ', default='Europe/Moscow')
 
 # Session
 SESSION_PERIOD = int(os.environ.get('SESSION_PERIOD', default=8 * 60 * 60))
@@ -32,6 +32,7 @@ DB_PASS = os.environ.get('DB_PASS', default='Mssql2017')
 DB_COMMAND_TIMEOUT = os.environ.get('DB_COMMAND_TIMEOUT', default=60)
 
 # Redis
+REDIS_SEARCH_TYPES_ID = 'types:list'
 REDIS_HOST = os.environ.get('REDIS_HOST', default=DEFAULT_HOST)
 REDIS_PORT = os.environ.get('REDIS_PORT', default=6379)
 REDIS_DB_SESSIONS = int(os.environ.get('REDIS_DB_SESSIONS', default=0))

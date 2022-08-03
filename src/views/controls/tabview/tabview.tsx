@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { TabView, TabPanel, TabPanelHeaderTemplateOptions } from 'primereact/tabview';
-import { DataTableControl } from './datatable'
+import { DataTableControl } from '../datatable/datatable'
 import { observer } from 'mobx-react-lite';
-import { useRootStore } from '../index';
+import { useRootStore } from '../../../index';
 
     
 export const TabViewControl = observer(() => {

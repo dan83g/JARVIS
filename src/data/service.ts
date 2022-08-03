@@ -1,23 +1,41 @@
-import { Requests, SuccessdHandler, ErrorHandler } from "./http";
+import { Requests, SuccessdHandler, ErrorHandler, fullUrl } from "./http";
+
+export interface QueryParams {
+    value: string;
+    typename?: string;
+    date_from?: Date;    
+    date_to?: Date;
+}
 
 export const SearchTypes = {    
-    list(success_callback?:SuccessdHandler, error_callback?: ErrorHandler): void {
-        Requests.exec('GET', '/type.list', {}, success_callback, error_callback);
+    getList(): any {
+        return Requests.getWithParams('GET', '/search/type.list');
     },
+    detect(value?: string): any {
+        return Requests.getWithParams('GET', '/search/type.detect', {value: value});
+    }
 } as const;
 
 export const User = {    
-    loadSettings(success_callback?:SuccessdHandler, error_callback?: ErrorHandler): void {
-        Requests.exec('GET', '/api/v1/user', {}, success_callback, error_callback);
+    loadSettings(): Promise<any> {
+        return Requests.getWithParams('GET', '/api/v1/user');
     },
-    saveSettings(data: any, success_callback?:SuccessdHandler, error_callback?: ErrorHandler): void {
-        Requests.exec_json('POST', '/api/v1/user', {}, success_callback, error_callback);
+    saveSettings(data: any): Promise<any> {
+        return Requests.getWithJson('POST', '/api/v1/user');
     },
 } as const;
 
 export const Queries = {
-    execute(id: string, success_callback?:SuccessdHandler, error_callback?: ErrorHandler): void {
-        Requests.exec('GET', `/search/query/${id}`, {}, success_callback, error_callback);
+    getData(id: string): Promise<any> {
+        return Requests.getWithParams('GET', `/search/query/${id}`);
+    }
+} as const;
+
+export const Search = {
+    getQueries(params?: QueryParams, url: string = '/search/'): Promise<any> {
+        if (params)
+            url = `${url}${params.typename ? params.typename + '/': ''}`
+        return Requests.getWithParams('POST', url, params);
     },
 } as const;
 

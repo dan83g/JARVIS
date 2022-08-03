@@ -1,9 +1,9 @@
 import React from 'react';
 import { Toolbar } from 'primereact/toolbar';
-import { Menu } from './slidemenu';
-import { FormControl } from './form';{}
+import { Menu } from '../menu/slidemenu';
+import { FormControl } from '../../form';{}
 
-export const MainToolbar = () => {
+export const MainToolbarControl = () => {
 
     const leftContents = (
         <React.Fragment>

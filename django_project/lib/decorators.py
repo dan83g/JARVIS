@@ -5,6 +5,7 @@ import functools
 import logging
 import typing
 from .response import Response
+from JARVIS.enums import HTTP_ERROR_CODE
 
 
 class Description:
@@ -165,7 +166,7 @@ class ViewExcept(BaseDecoratorView, Response):
     :returns: wrapper function
     :rtype: django Response model
     """
-    def __init__(self, message: str = 'Ошибка', status: str = 'error', status_code: int = 417, logger=None) -> None:
+    def __init__(self, message: str = 'Ошибка', status: str = 'error', status_code: int = HTTP_ERROR_CODE, logger=None) -> None:
         self.message = message
         self.status = status
         self.status_code = status_code

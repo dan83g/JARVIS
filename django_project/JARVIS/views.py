@@ -1,4 +1,3 @@
-from django.http import HttpResponse
 from django.shortcuts import render
 from django.contrib import auth
 from JARVIS.enums import SERVER_VERSION
@@ -19,12 +18,7 @@ def show_500(request):
     return render(request, '500.html', {})
 
 
-# =============================== PING & STATUS =====================
-@ViewMethod(method=['GET'])
-def ping(request):
-    return HttpResponse(f"JARVIS (version: {SERVER_VERSION})")
-
-
+# =============================== STATUS =====================
 @ViewMethod(method=['GET', 'POST'])
 @ViewAuth()
 def status(request):

@@ -5,7 +5,7 @@ import { SelectButton } from 'primereact/selectbutton';
 import { Checkbox } from 'primereact/checkbox';
 import { observer } from 'mobx-react-lite';
 
-import { useRootStore } from '../index';
+import { useRootStore } from '../../../index';
 
 export const SettingsPanel = observer(() => {    
     // const store = useRootStore();

@@ -1,22 +1,24 @@
-import axios from 'axios';
+import axios, { AxiosPromise } from 'axios';
 import { Method } from 'axios';
 
-// for development usage
 var server: string = ""
+export var errorStatusCode: number =  417
+// if development
 if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
     server = "http://localhost:8080";
+    errorStatusCode = 206
 } else {}
 
 export type SuccessdHandler = (data: any) => void;
 export type ErrorHandler = (error: any) => void;
 
-var success_handler = function(data: any): any{
+const successHandler = (data: any): any => {
     if (data.data && data?.status=="success")
         return data.data
     else console.log("Сервер вернул ответ неустановленного вида");    
 }
-var error_handler = function(error: any){
-    if (error.response?.status == 417) 
+const errorHandler = (error: any): string => {
+    if (error.response?.status == errorStatusCode) 
         return error.response.data.message    
     else if (error.response?.status) 
         return `Ошибка сервера: ${error.response.status} (${error.response.statusText})`
@@ -26,33 +28,36 @@ var error_handler = function(error: any){
 }
 
 export const Requests = {
-    exec(method: Method, url: string, params?: any, success_callback?: SuccessdHandler, error_callback?: ErrorHandler): void {
-        axios({
-            method: method,
-            url: `${server}${url}`,
-            timeout: 30000,
-            params: params
-        }).then(response => { if (success_callback !== undefined) success_callback(success_handler(response.data)) }
-        ).catch(error => { if (error_callback !== undefined) error_callback(error_handler(error)) });
-    },    
-    exec_json(method: Method, url: string, data?: any, success_callback?: SuccessdHandler, error_callback?: ErrorHandler): void {
-        axios({
-            method: method,
-            url: `${server}${url}`,
-            timeout: 30000,
-            headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json;charset=UTF-8'
-            },
-            data: data
-        }).then(response => {
-            if (success_callback !== undefined) success_callback(success_handler(response.data)) 
-        }
-        ).catch(error => {
-            if (error_callback !== undefined) 
-                error_callback(error_handler(error))
-        });
-    }
+    async getWithParams(method: Method, url: string, params?: any): Promise<any> {
+        try {
+            let response = await axios({
+                method: method,
+                url: `${server}${url}`,
+                timeout: 30000,
+                params: params
+             });
+             return successHandler(response.data);
+        } catch (error) {
+            throw errorHandler(error);
+        }        
+    },
+    async getWithJson(method: Method, url: string, data?: any): Promise<any> {
+        try {
+            let response = await axios({
+                method: method,
+                url: `${server}${url}`,
+                timeout: 30000,
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json;charset=UTF-8'
+                },
+                data: data
+             });
+             return successHandler(response.data);
+        } catch (error) {
+            throw errorHandler(error);
+        }        
+    },
 } as const;
 
 export function baseUrl(): string{    

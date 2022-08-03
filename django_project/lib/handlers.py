@@ -16,6 +16,7 @@ import pandas as pd
 import pandasql as ps
 import sql_metadata as sql
 import pyodbc
+from JARVIS.enums import HTTP_ERROR_CODE
 logger = logging.getLogger(__name__)
 
 
@@ -283,7 +284,7 @@ class HTTPHandler(HandlerAbstractFactory):
         :return: nothing, filling self.errors
         :rtype: None
         """
-        if (response.status_code in (400, 401, 417)
+        if (response.status_code in (400, 401, HTTP_ERROR_CODE)
                 and response.headers.get('content-type') == 'application/json'):
             try:
                 response_json = json.loads(response.text)

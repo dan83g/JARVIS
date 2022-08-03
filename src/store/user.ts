@@ -2,6 +2,7 @@ import { makeAutoObservable } from 'mobx'
 import { RootStore } from './root';
 import { User } from '../data/service';
 import { toast } from "react-toastify";
+import { fullUrl } from '../data/http';
 
 
 interface themeOption {
@@ -74,7 +75,7 @@ export class UserStore {
         }
     }
 
-    loadSettings = () => {
+    loadSettings = async () => {
         // load user settings from localstorage
         const localStorage = window.localStorage;
         let theme = localStorage.getItem('theme');
@@ -85,14 +86,27 @@ export class UserStore {
             this.setErrors(errors === 'true');
 
         // load user info
-        User.loadSettings((data: any) => this.setUser(data), (error) => toast.error(error));
+        // let userData = await User.loadSettings((data: any) => this.setUser(data), (error) => toast.error(error));
+        try {
+            let userData = await User.loadSettings();        
+            this.setUser(userData)
+        } catch(error) {
+            toast.error(`${error}`);                
+        }        
     }
 
-    saveSettings = () => {
+    saveSettings = async () => {
         let data ={
             "theme": this.theme,
             "errors": this.errors
         }
+
+        try {
+            let _ = await User.saveSettings(data);
+            toast.success('Настройки успешно сохранены')
+        } catch(error) {
+            toast.error(`${error}`);                
+        }           
 
         // User.saveSettings(data, (data: any) => toast.success('Настройки успешно сохранены'), (error) => toast.error(error));
     }
@@ -115,7 +129,7 @@ export class UserStore {
         window.localStorage.setItem('theme', theme)
         let themeLink = document.getElementById('app-theme') as HTMLLinkElement;
         if (themeLink && theme) {
-            themeLink.href = `themes/${theme}/theme.css`;
+            themeLink.href = fullUrl(`themes/${theme}/theme.css`);
             this.theme = theme;
             setTimeout(this.root.tabViewStore?.setDeltaHeight, 1000);
         }

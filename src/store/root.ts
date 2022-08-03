@@ -9,7 +9,7 @@ export class RootStore {
 
     constructor() {    
         this.userStore = new UserStore(this);
-        this.formStore = new FormStore(this);
         this.tabViewStore = new TabViewStore(this);
+        this.formStore = new FormStore(this);        
     }
 }

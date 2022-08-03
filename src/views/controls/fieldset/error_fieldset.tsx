@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Fieldset } from 'primereact/fieldset';
 import { observer } from 'mobx-react-lite';
-import { useRootStore } from '../index';
+import { useRootStore } from '../../../index';
 
     
 export const ErrorsControl = observer(() => {

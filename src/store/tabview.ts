@@ -1,44 +1,10 @@
 import { makeAutoObservable } from 'mobx'
 import { RootStore } from './root';
 import { User } from '../data/service';
+import { Search, QueryParams } from '../data/service';
 import { toast } from 'react-toastify';
 import { Queries } from '../data/service';
 
-
-// class Query {
-//     id: string;
-//     title: string;    
-//     icon: string;
-//     iframe: boolean;
-//     loading: boolean = true;
-//     columns?: string[] = ['id']
-//     data?: Object[] = undefined;
-
-//     constructor(id: string, title: string, icon: string, iframe: boolean) {
-//         this.id = id;
-//         this.title = title;
-//         this.icon = icon;
-//         this.iframe = iframe;
-//         this.execute();
-//     }
-
-//     execute = () => {
-//         let callbackSuccess = (data: any) => {
-//             this.loading = false;
-//             this.data = data;            
-//             this.setColumns();
-//         }
-//         let callbackError = (error: any) => {
-//             this.loading = false;
-//             toast.error(error);
-//         }
-//         Queries.execute(this.id, callbackSuccess.bind(this), callbackError.bind(this));
-//     }
-
-//     setColumns() {
-//         this.columns = this.data ? Object.keys(this.data[0]) : ['undefined'];
-//     }    
-// }
 
 interface Query {
     id: string;
@@ -58,34 +24,20 @@ export class TabViewStore {
 
     constructor(root: RootStore) {
         this.root = root;
-        this.loadQueries();
         this.setDeltaHeight();
-        this.executeQueries();
         makeAutoObservable(this);
     }
 
     // tabs
-    loadQueries() {
-        let queries = [
-            {
-                id: 'cb39ea6f356670042db23c87ffe29758',
-                title: 'cars',
-                icon: 'calendar',
-                iframe: false
-            },
-            {
-                id: '604277792746b064fcfb35908d7d894b',
-                title: 'sqlite3',
-                icon: 'calendar',
-                iframe: false
-            }
-        ]
-
-        this.queries = queries.map((query: Query) => {
-            query.loading = true;
-            // query.columns = ['undefined'];
-            return query;            
-        })
+    loadQueries = async(params?: QueryParams, url?: string) => {
+        try {
+            let data = await Search.getQueries(params, url);
+            this.setQueries(data);
+            if (this.queries)
+                this.executeQueries();
+        } catch(error) {
+            toast.error(`${error}`);                
+        }
     }
 
     executeQueries() {
@@ -126,38 +78,50 @@ export class TabViewStore {
         return this.queries.find(q => q.id === queryId);
     }
 
+    setQueries = (data: Query[]): void => {
+        this.queries = data.map((query: Query) => {
+            let newQuery = Object.assign({}, query);
+            newQuery.loading = true;
+            return newQuery;   
+        })
+    }
+
     setQueryData = (queryId: string, data: any) => {
         this.queries = this.queries.map((query: Query) => {
-            if (query.id == queryId)
-                query.data = data
-                query.columns = query.data ? Object.keys(query.data[0]) : ['undefined'];                
-            return query
-        })      
+            if (query.id === queryId){
+                let newQuery = Object.assign({}, query);
+                newQuery.data = data;
+                newQuery.columns = data ? Object.keys(data[0]) : ['undefined'];
+                return newQuery;
+            }
+            return query;
+        });
     }
 
     setQueryLoading = (queryId: string, loading: boolean) => {
         this.queries = this.queries.map((query: Query) => {
-            if (query.id == queryId)
-                query.loading = loading
+            if (query.id === queryId){
+                let newQuery = Object.assign({}, query);
+                newQuery.loading = loading;
+                return newQuery;  
+            }
             return query
         })
     }
 
-    executeQuery = (queryId: string) => {        
+    executeQuery = async (queryId: string) => {        
         let query = this.getQuery(queryId);
-
-        let callbackSuccess = (data: any) => {
-            if (query){
+        if (query) {
+            try {
+                let data = await Queries.getData(queryId);
                 this.setQueryLoading(queryId, false);
-                this.setQueryData(queryId, data);
+                if (data && Array.isArray(data) && data.length > 0){
+                    this.setQueryData(queryId, data);
+                }
+            } catch(error) {
+                this.setQueryLoading(queryId, false);
+                toast.error(`${error}`);                
             }
         }
-        let callbackError = (error: any) => {
-            if (query){
-                this.setQueryLoading(queryId, false);
-                toast.error(error);
-            }
-        }
-        Queries.execute(queryId, callbackSuccess.bind(this), callbackError.bind(this));
     }
 }

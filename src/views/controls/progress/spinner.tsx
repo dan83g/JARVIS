@@ -1,7 +1,8 @@
 import React from 'react';
 import { ProgressSpinner } from 'primereact/progressspinner';
 
-const ProgressSpinnerDemo = () => {
+
+const SpinnerControl = () => {
     return (
         <div>
             <div className="card">

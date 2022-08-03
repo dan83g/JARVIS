@@ -8,12 +8,12 @@ import { ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 
 import { FormControl } from './views/form';
-import { MainToolbar } from './views/toolbar';
+import { MainToolbarControl } from './views/controls/toolbar/main';
 import { Image } from 'primereact/image';
-import { ErrorsControl } from './views/errors';
-import { SettingsPanel } from './views/settings'
-import { TabViewControl } from './views/tabview';
-import { Logo } from './views/logo';
+import { ErrorsControl } from './views/controls/fieldset/error_fieldset';
+import { SettingsPanel } from './views/controls/panel/settings'
+import { TabViewControl } from './views/controls/tabview/tabview';
+import { Logo } from './views/controls/logo/logo';
 
 
 import './App.css';
@@ -21,6 +21,7 @@ import './App.css';
 export const IndexPage = () => {    
     return (
         <div className="app">
+            <ToastContainer />
             <div className="app-header">
                 <div style={{flexBasis: "130px", marginTop: "0.75rem", marginLeft: "0.75rem"}}>
                     <Logo/>
@@ -45,7 +46,7 @@ export const IndexPage = () => {
 export const LoginPage = () => {
     return (
         <div className="App">
-            <MainToolbar />
+            <MainToolbarControl />
         </div> 
     )
 }
@@ -54,15 +55,16 @@ export const LoginPage = () => {
 function App() {
     PrimeReact.ripple = true;  
 
-    return (
-        <Router>
-            <ToastContainer />
-            <Routes>
-                <Route path='/' element={ <IndexPage/> } />
-                <Route path='/login' element={ <LoginPage/> } />
-            </Routes>
-        </Router>
-    );
+    return <IndexPage/>;
+    // return (
+    //     <Router>
+    //         <ToastContainer />
+    //         <Routes>
+    //             <Route path='/' element={ <IndexPage/> } />
+    //             <Route path='/login' element={ <LoginPage/> } />
+    //         </Routes>
+    //     </Router>
+    // );
 }
 
 export default App;

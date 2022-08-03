@@ -1,15 +1,16 @@
 import React, { useState, useEffect, useRef, ReactPropTypes } from 'react';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
-import { CalendarInlineControl } from './basic/datepicker';
-import { SelectButtonControl } from './basic/selectbutton';
-import { ComboBoxControl } from './basic/combo';
-import { ButtonControl } from './buttons';
+import { CalendarInlineControl } from './controls/datepicker/inlinecalendar';
+import { SelectButtonControl } from './controls/selectbutton/selectbutton';
+import { ComboBoxControl } from './controls/combo/combobox';
+import { ButtonControl } from './controls/button/button';
 
 import { toast } from "react-toastify";
 import { observer } from 'mobx-react-lite';
 import { useRootStore } from '../index';
 import { OverlayPanel } from 'primereact/overlaypanel';
+import { ContextMenu } from 'primereact/contextmenu';
 
 
 export const FormControl = observer(() => {
@@ -17,33 +18,33 @@ export const FormControl = observer(() => {
     // store.userStore......
     const { formStore } = useRootStore()
     const overlayPanel = useRef<OverlayPanel>(null);
+    const cmTypes = useRef<ContextMenu>(null);
 
-    return (        
+    useEffect(() => {
+        let elInputText = document.querySelector(`.p-input-icon-right > .p-inputtext.search-input-text`) as HTMLElement;
+        let elTypeBtn = document.querySelector(`.p-input-icon-right > .p-button.suffix`) as HTMLElement;
+        if (elInputText)
+            elInputText.style.paddingRight = `${elTypeBtn.getBoundingClientRect().width + 5}px`;
+    }, [formStore.typeValue]);    
+
+    return (
         <form className="flex justify-content-center align-items-center" onSubmit={formStore.onFormSubmit}>
-            <div className="grid formgrid mt-3" style={{width: "700px"}}>
-                <div className="field col-11">
+            <div className="grid formgrid mt-3" style={{width: "750px"}}>
+                <div className="field col-10">
+                    <ContextMenu model={formStore.typesMenuOptions} ref={cmTypes}></ContextMenu>
                     <span className="p-input-icon-left p-input-icon-right" style={{width:"100%"}}>
                         <i className="pi pi-search" />
-                        <InputText className='border-radius-10' value={formStore.searchText} onChange={(e:any) => formStore.onChangeSearchText(e.target.value)} placeholder={'Введите текст для поиска'} style={{width:"100%"}}/>
-                        <Button type="button" icon="pi pi-times" tabIndex={-1} className="suffix p-input-suffix p-button-text"  onClick={() => formStore.onChangeSearchText("")} title="Очистить" style={formStore.searchTextButtonVisibility ? {} : { display: 'none' }}/>
+                            <InputText className='search-input-text border-radius-10' value={formStore.searchText} onChange={(e:any) => formStore.setSearchText(e.target.value)} placeholder={'Введите текст для поиска'} style={{width:"100%"}}/>
+                            <Button type="button" className="btn-type suffix p-input-suffix p-button-text border-radius-10"  onClick={(e) => cmTypes?.current?.show(e)} label={formStore.typeValue}/>
                         <i/>
                     </span>
                 </div>
-                <div className="field col-1">
-                    <Button type="button" icon="pi pi-sliders-h" className="p-button-rounded p-button-outlined" onClick={() => formStore.setAdvancedVisibility(formStore.advancedVisibility ? false : true)} title='Инструменты'/>
+                <div className="field col-2" style={{textAlign: "left"}}>
+                    <Button icon="pi pi-search" className="p-button-rounded p-button-outlined" title='Найти'/>
+                    <Button type="button" icon="pi pi-sliders-h" className="p-button-rounded p-button-outlined search-settings" onClick={() => formStore.setAdvancedVisibility(formStore.advancedVisibility ? false : true)} title='Инструменты'/>
                 </div>
-
-
-                {/* <div className="field col-9 mb-1 p-selectbutton date-filter" style={{textAlign: "left"}}>   */}
-                <div className="field col-3 mb-1" style={{textAlign: "left"}}>                    
-                    <ComboBoxControl
-                        className='type-filter text-sm'
-                        visible={formStore.advancedVisibility} value={formStore.typeValue} options={formStore.typesData}
-                        onChange={(e:any) => formStore.setTypeValue(e.value)}
-                        placeholder="Введите тип"
-                    />
-                </div>                
-                <div className="field col-9 mb-1 p-selectbutton date-filter" style={{textAlign: "right"}}>                    
+               
+                <div className="field col-12 mb-1 p-selectbutton date-filter" style={{textAlign: "center"}}>                    
                     <SelectButtonControl
                         visible={formStore.advancedVisibility}
                         value={formStore.dateFilterValue} options={formStore.dateFilterOptions} 
@@ -67,7 +68,7 @@ export const FormControl = observer(() => {
                     </OverlayPanel>
                 </div>
                 {/* <div className="field col-12 mb-1">                    
-                    <SelectButtonControl className='type-filter' visible={formStore.advancedVisibility} value={formStore.typeValue} options={formStore.typesData} onChange={(e:any) => formStore.setTypeValue(e.value)}/>
+                    <SelectButtonControl className='type-filter' visible={formStore.advancedVisibility} value={formStore.typeValue} options={formStore.typesList} onChange={(e:any) => formStore.setTypeValue(e.value)}/>
                 </div> */}
                 <div className="field col-8 mt-1"/>
                 <div className="field col-4 mt-1">                    

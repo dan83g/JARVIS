@@ -1,5 +1,6 @@
 from typing import Union
 from django.http import JsonResponse
+from JARVIS.enums import HTTP_ERROR_CODE
 
 JSON_DUMPS_PARAMS = {
     'ensure_ascii': False
@@ -12,7 +13,7 @@ class Response:
         pass
 
     @staticmethod
-    def json_response(message: str = 'Ошибка', status: str = 'error', status_code: int = 417) -> JsonResponse:
+    def json_response(message: str = 'Ошибка', status: str = 'error', status_code: int = HTTP_ERROR_CODE) -> JsonResponse:
         """send error in webix format
 
         :param message: message with errors and warnings, defaults to 'Ошибка'

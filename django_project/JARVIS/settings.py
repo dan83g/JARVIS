@@ -48,7 +48,6 @@ INSTALLED_APPS = [
     'map',
     'search',
     'security',
-    'files',
 ]
 
 # ADMIN JET

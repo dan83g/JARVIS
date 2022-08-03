@@ -56,9 +56,9 @@ class SourceType(Enum):
     SL1 = 'SQLITE', 'database', False
     SL3 = 'SQLITE3', 'database', False
 
-    def __init__(self, title: str, icon_tag: str = 'database', iframe: bool = False) -> None:
+    def __init__(self, title: str, icon: str = 'database', iframe: bool = False) -> None:
         self.title = title
-        self.icon_tag = icon_tag
+        self.icon = icon
         self.iframe = iframe
 
     @classmethod
@@ -97,8 +97,8 @@ class sources(models.Model):
         return SourceType[self.source_type].iframe
 
     @property
-    def icon_tag(self) -> str:
-        return SourceType[self.source_type].icon_tag
+    def icon(self) -> str:
+        return SourceType[self.source_type].icon
 
     def to_dict(self):
         result_dict = model_to_dict(self)
