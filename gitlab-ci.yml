@@ -1,0 +1,35 @@
+# описываем какие нужны этапы в пайплайне
+stages:
+    - test
+    - build
+    - deploy
+
+# проверка тестов джанги
+django test:
+    stage: test
+    image: python:3-alpine
+    script:
+      - pip install -r requirements.txt
+      - python manage.py test --noinput
+
+docker build:
+    stage: build
+    image: docker:stable
+    services:
+      - docker:dind
+    script:
+      - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+      - docker build -t ${CI_REGISTRY}/${CI_PROJECT_PATH}/${CI_PROJECT_NAME}:${CI_COMMIT_REF_SLUG} .
+      - docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${CI_PROJECT_NAME}:${CI_COMMIT_REF_SLUG}
+      - docker tag ${CI_REGISTRY}/${CI_PROJECT_PATH}/${CI_PROJECT_NAME}:${CI_COMMIT_REF_SLUG}
+                   ${CI_REGISTRY}/${CI_PROJECT_PATH}/${CI_PROJECT_NAME}:latest
+      - docker push ${CI_REGISTRY}/${CI_PROJECT_PATH}/${CI_PROJECT_NAME}:latest
+
+Deploy to Dev:
+  stage: deploy
+  script:
+    - docker rm -f django || true
+    - docker pull registry.gitlab.com/d3pre5s/docker-cicd/docker-cicd:develop
+    - docker run -d -p 80:8000 --name django registry.gitlab.com/d3pre5s/docker-cicd/docker-cicd:develop 
+  tags:
+    - dev-shell

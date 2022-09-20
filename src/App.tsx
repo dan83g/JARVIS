@@ -9,8 +9,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { FormControl } from './views/form';
 import { MainToolbarControl } from './views/controls/toolbar/main';
-import { Image } from 'primereact/image';
-import { ErrorsControl } from './views/controls/fieldset/error_fieldset';
+import { ErrorsControl } from './views/controls/panel/log';
 import { SettingsPanel } from './views/controls/panel/settings'
 import { TabViewControl } from './views/controls/tabview/tabview';
 import { Logo } from './views/controls/logo/logo';
@@ -23,20 +22,20 @@ export const IndexPage = () => {
         <div className="app">
             <ToastContainer />
             <div className="app-header">
-                <div style={{flexBasis: "130px", marginTop: "0.75rem", marginLeft: "0.75rem"}}>
+                <div className='mt-2 ml-2'>
                     <Logo/>
                 </div>
-                <div style={{flexBasis: "700px"}}>
+                <div className='search-form'>
                     <FormControl/>
                 </div>
-                <div style={{marginTop: "0.75rem", marginRight: "0.75rem"}}>
+                <div className='mt-3 mr-3'>
                     <SettingsPanel/>
                 </div>
             </div>
-            <div style={{flexGrow: 1}}>
+            <div className='flex-grow-1'>
                 <TabViewControl/>
             </div>
-            <div style={{marginBottom: "0rem"}}>
+            <div className='mb-0'>
                 <ErrorsControl/>
             </div>
         </div> 

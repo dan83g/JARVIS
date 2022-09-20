@@ -1,4 +1,5 @@
 from django.forms import Form
+from django.conf import settings
 from pydantic import BaseModel, ValidationError
 from abc import abstractmethod
 import functools
@@ -145,6 +146,8 @@ class ViewAuth(BaseDecoratorView, Response):
     def __call__(self, view):
         @functools.wraps(view)
         def wrapper(request, *args, **kwargs):
+            if settings.DEBUG:
+                return view(request, *args, **kwargs)
             if not request.user.is_authenticated:
                 return self.json_response(message=self.message, status=self.status, status_code=self.status_code)
             return view(request, *args, **kwargs)

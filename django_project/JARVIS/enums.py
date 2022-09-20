@@ -8,7 +8,7 @@ DEFAULT_HOST = 'localhost'
 SERVER_VERSION = os.environ.get('SERVER_VERSION', default="unknown")
 
 # Error response code
-HTTP_ERROR_CODE = 206
+HTTP_ERROR_CODE = 417
 
 # TimeZone
 TZ = os.environ.get('TZ', default='Europe/Moscow')
@@ -32,10 +32,11 @@ DB_PASS = os.environ.get('DB_PASS', default='Mssql2017')
 DB_COMMAND_TIMEOUT = os.environ.get('DB_COMMAND_TIMEOUT', default=60)
 
 # Redis
-REDIS_SEARCH_TYPES_ID = 'types:list'
 REDIS_HOST = os.environ.get('REDIS_HOST', default=DEFAULT_HOST)
 REDIS_PORT = os.environ.get('REDIS_PORT', default=6379)
 REDIS_DB_SESSIONS = int(os.environ.get('REDIS_DB_SESSIONS', default=0))
+REDIS_DB_QUERIES = int(os.environ.get('REDIS_DB_QUERIES', default=1))
+REDIS_DB_CACHE = int(os.environ.get('REDIS_DB_CACHE', default=2))
 REDIS_CACHE_TTL = os.environ.get('REDIS_CACHE_TTL', default=8 * 60 * 60)
 
 # Kafka query logging
@@ -43,6 +44,9 @@ KAFKA = to_bool(os.environ.get('KAFKA', default='0'))
 KAFKA_HOST = os.environ.get('KAFKA_HOST', default=DEFAULT_HOST)
 KAFKA_PORT: int = int(os.environ.get('KAFKA_PORT', default=9092))
 KAFKA_TOPIC = os.environ.get('KAFKA_TOPIC', default="jarvis")
+
+# TESSERACT
+TESSERACT_PARAMS = os.environ.get('TESSERACT_PARAMS', default='-c tessedit_char_whitelist="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789().-_@ " ')
 
 # Log filename
 QUERY_LOGGING = to_bool(os.environ.get('QUERY_LOGGING', default='0'))

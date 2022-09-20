@@ -1,9 +1,50 @@
 import { makeAutoObservable } from 'mobx'
 import { RootStore } from './root';
-import { SearchTypes, QueryParams } from '../data/service';
+import { Search, SearchTypes, IQueriesParams } from '../data/service';
 import { toast } from "react-toastify";
 import { b64DecodeUnicode } from '../data/code';
+import { MenuItem, MenuItemCommandParams } from 'primereact/menuitem/menuitem';
 
+
+// SearchInfo
+interface ISearchInfo {
+    typename?: string;
+    autocomplete: string[];
+}
+export class SearchInfo implements ISearchInfo {
+    searchText?: string = undefined;
+    typename?: string = undefined;
+    autocomplete: any = [];
+
+    constructor(params: Partial<SearchInfo> = {}) {
+        Object.assign(this, params);
+    }
+    
+    loadSearchInfo = async (): Promise<ISearchInfo> => {
+        try {            
+            let data = await Search.valueInfo(this.searchText);
+            return data ? (data as ISearchInfo) : (this as ISearchInfo);
+        } catch(error) {
+            throw(`${error}`)
+        }
+    }
+}
+
+// menuitem interface
+type IMenuItem = Pick<MenuItem, 'label' | 'icon'  | 'command'>
+export class MenuItemEx implements IMenuItem {
+    label?: string;
+    icon?: any;
+    command?(e: MenuItemCommandParams): void;    
+
+    constructor(item: IMenuItem) {
+        this.label = item.label;
+        this.icon = item.icon;
+        this.command = item.command;
+    }
+}
+
+// FormStore class
 export class FormStore {
     root: RootStore;
 
@@ -17,14 +58,17 @@ export class FormStore {
     dateRange?: Date[] | undefined = undefined;
 
     typeValue?: string = '';
-    typesList?: string[] = [];
-    typesMenuOptions?: any[] = [];
+    typesList: string[] = [];
+    // typesMenuOptions: any[] = [];
+
+    autoCompleteList?: string[] = [];
 
     dateFilterOptions = [
         {name: "За сутки", id: "day", getRangeStart: (end: Date) => {return new Date(end.setDate(end.getDate()-1))}},
         {name: "За неделю", id: "week", getRangeStart: (end: Date) => {return new Date(end.setDate(end.getDate()-7))}},
         {name: "За 2 недели", id: "2week", getRangeStart: (end: Date) => {return new Date(end.setDate(end.getDate()-14))}},
         {name: "За месяц", id: "month", getRangeStart: (end: Date) => {return new Date(end.setMonth(end.getMonth()-1))}},
+        {name: "За полугодие", id: "halfyear", getRangeStart: (end: Date) => {return new Date(end.setMonth(end.getMonth()-6))}},
         {name: "За год", id: "year", getRangeStart: (end: Date) => {return new Date(end.setFullYear(end.getFullYear()-1))}},
         {name: "Период...", id: "custom", getRangeStart: (end: Date) => {return end}},
     ]    
@@ -42,6 +86,7 @@ export class FormStore {
         }
     }
 
+    // loading data
     loadQueryParams = () => {
         let search = window.location.search;
         const urlParams = new URLSearchParams(search);
@@ -55,7 +100,6 @@ export class FormStore {
             }
         }
     }
-
     loadSearchTypes = async () => {
         try {
             let data = await SearchTypes.getList();
@@ -63,17 +107,7 @@ export class FormStore {
         } catch(error) {
             toast.error(`${error}`);                
         }
-    }
-
-    detectSearchType = async (value: string) => {
-        try {
-            let data = await SearchTypes.detect(value);
-            if (data && data.typename)
-                this.setTypeValue(data.typename);
-        } catch(error) {
-            toast.error(`${error}`);                
-        }
-    }    
+    } 
 
     setAdvancedVisibility = (value: boolean) => {
         this.advancedVisibility = value
@@ -82,21 +116,32 @@ export class FormStore {
     // type
     setTypesList = (list: string[]) => {
         this.typesList = list;
-        console.log(list);
-        this.setTypesMenuOptions(list);
     }
-    
-    setTypeValue = (type: string) => {
+    setTypeValue = (type?: string) => {
         this.typeValue = type;
     }
+    setAutoCompleteList = (autoCompleteList?: string[]) => {
+        if (autoCompleteList && autoCompleteList.length > 0) {
+            this.autoCompleteList = autoCompleteList;
+        }
+    }
+    setSearchInfo = async (searchText?: string, isSetType: boolean = true): Promise<void> => {
+        let info = await new SearchInfo({searchText: searchText}).loadSearchInfo();
+        if (info) {
+            if (isSetType === true) {
+                this.setTypeValue(info.typename);
+            }
+            this.setAutoCompleteList(info.autocomplete);
+        }
+    }  
 
-    setTypesMenuOptions = (types: any[]) => {
-        this.typesMenuOptions = types.map((type: string) => {
-            return {
+    get TypesMenuOptions() {
+        return this.typesList.map((type: string) => {
+            return new MenuItemEx({
                 label: type,
                 icon: 'pi pi-fw pi-check',
                 command:()=>this.setTypeValue(type)
-            }
+            } as IMenuItem)
         })
     }
 
@@ -109,21 +154,17 @@ export class FormStore {
             this.setDateRange([rangeStart ? rangeStart : new Date(), new Date()]);
         }
     }
-
     setDateRange = (range: Date[] | undefined) => {
         this.dateRange = range
     }
-
     setSearchText = (value: string) => {
         this.searchText = value;
-        if (value.length >4)
-            this.detectSearchType(value);                    
     }    
 
-    onFormSubmit = (e:any) => {
+    onFormSubmit = (e: any) => {
         e.preventDefault();
         if (this.searchText) {
-            let params: QueryParams = {
+            let params: IQueriesParams = {
                 value: this.searchText,
                 typename: this.typeValue,
                 date_from: this.dateRange ? this.dateRange[0] : undefined,

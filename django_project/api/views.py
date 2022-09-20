@@ -1,10 +1,13 @@
 from django.db.models import Q
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponse
 from search.searcher import searcher
 from search.models import (
     types, queries)
 from lib.decorators import (
     ViewMethod, ViewAuth, ViewExcept, ViewRmVaryHeader, ViewInputValidation)
+from .exceptions import (
+    UploadFileNotExists, UploadFileUnknownType, TesseractException)
+from .service import OCR
 from lib.response import Response
 from .import forms
 import logging
@@ -12,10 +15,20 @@ from JARVIS.enums import SERVER_VERSION
 logger = logging.getLogger(__name__)
 
 
-# ================================= TEST ==================================
+# ================================= OCR ==================================
 @ViewRmVaryHeader()
-def test(request):
-    return JsonResponse({'status': 'success', 'message': 'OK'})
+@ViewMethod(method=['POST'])
+@ViewAuth()
+def ocr(request):
+    try:
+        ocr = OCR(user=request.user, files=request.FILES)
+        return HttpResponse(ocr.get_text())
+    except (UploadFileNotExists, UploadFileUnknownType) as error:
+        return HttpResponse(f'{error}', status=400)
+    except TesseractException as error:
+        return HttpResponse(f'{error}', status=500)
+    except Exception as error:
+        return HttpResponse(f'Unknown exception: {error}', status=500)
 
 
 # ================================= PING ==================================
@@ -26,7 +39,7 @@ def ping(request):
 
 # ================================= TYPES =================================
 @ViewMethod(method=['GET'])
-# @ViewAuth()
+@ViewAuth()
 @ViewExcept(message='Ошибка получения данных')
 @ViewRmVaryHeader()
 def type_list(request):
@@ -36,7 +49,7 @@ def type_list(request):
 
 # ================================= QUERIES ===============================
 @ViewMethod(method=['GET'])
-# @ViewAuth()
+@ViewAuth()
 @ViewExcept(message='Ошибка получения данных')
 @ViewRmVaryHeader()
 def query_list(request):

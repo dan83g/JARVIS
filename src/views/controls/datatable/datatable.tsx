@@ -1,11 +1,15 @@
-import React, { useState, useRef } from 'react';
-import { DataTable, DataTableProps } from 'primereact/datatable';
+import React, { useState, useRef, useEffect } from 'react';
+import { DataTable, DataTableProps, DataTablePageParams } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { observer } from 'mobx-react-lite';
-import { useRootStore } from '../../../index';
 import { BookType } from  'xlsx';
+import { Button } from 'primereact/button';
 import { ContextMenu } from 'primereact/contextmenu';
+import { BestPaginatorTemplate } from '../paginator/template';
+import { PaginatorTemplate } from 'primereact/paginator';
+import { ComboBoxControl } from '../combo/combobox';
 import copy from 'copy-to-clipboard';
+import { IQuery } from '../../../store/tabview';
 
 
 const getFilename = (queryName: string, ext: string): string => {
@@ -13,14 +17,35 @@ const getFilename = (queryName: string, ext: string): string => {
     return `${queryName}-${date.toISOString().slice(0, 10)}-${date.getTime()}.${ext}`;
 }
 
-interface Props extends DataTableProps {
+export interface IDataTablePageParams extends DataTablePageParams {
     queryId: string;
 }
 
-export const DataTableControl = observer(({ queryId, ...props }: Props) => {
-    const { tabViewStore } = useRootStore();
-    const query = tabViewStore.getQuery(queryId);
-    const [selected, setSelected] = useState([]);    
+// export interface IPartialQuery {
+//     id: string;
+//     title: string;
+//     loading: boolean;
+//     data: Object[];
+//     columns: string[];
+//     value: string;
+//     limit: number;
+//     offset: number;
+// }
+
+export interface IDataTablePageParams extends DataTablePageParams {
+    query: IQuery;
+}
+
+export interface IProps extends DataTableProps {
+    query: IQuery;
+    datatableHeight: number;
+    onPaging(e: IDataTablePageParams): void;
+}
+
+export const DataTableControl = observer(({ query, datatableHeight, onPaging, ...props }: IProps) => {
+    const [selected, setSelected] = useState([]);
+    const [first, setFirst] = useState(0);
+    const [rows, setRows] = useState(50);
 
     // context menu
     const contextMenu = useRef<ContextMenu>(null);
@@ -72,48 +97,63 @@ export const DataTableControl = observer(({ queryId, ...props }: Props) => {
         });
     }
 
-    const bodyTemplate = (data:any) => {
-        return data;
+    const onPage = (event: DataTablePageParams): void => {
+        let evt = event as IDataTablePageParams;
+        evt.query = query;
+        onPaging(evt);
+        // setFirst(event.first);
+        // setRows(event.rows);
+        // setCurrentPage(event.page + 1);
     }    
 
     return (
         !query?.data ? null :
-        <div>
+        <div style={{height: `calc(100vh - ${datatableHeight}px)`}}>
             <ContextMenu model={contextMenuOptions} ref={contextMenu}/>
             <DataTable
-                value={query?.data}
+                { ...props }
 
+                value={query?.data}
+                loading={query?.loading}
                 filterDisplay="row"
 
-                // header={renderHeader}
-                // contextMenuSelection={selected ? selected : undefined}
-                // onContextMenuSelectionChange={e => setSelected(e.value)}
-                onContextMenu={e => {contextMenu.current?.show(e.originalEvent); console.log('fgyh')}}
+                // contextMenu
+                onContextMenu={e => {contextMenu.current?.show(e.originalEvent)}}
     
+                // paginator
+                onPage={onPage}
+                paginatorTemplate={BestPaginatorTemplate as PaginatorTemplate}
+                // paginatorLeft={paginatorLeft}
+                // paginatorRight={paginatorRight}
+                // onPage={onPage}
+
+                // selection
                 selection={selected}
+                selectionMode="multiple" cellSelection
                 onSelectionChange={e => {setSelected(e.value); contextMenu.current?.hide(e.originalEvent);}}
 
-                scrollable scrollHeight={`calc(100vh - ${tabViewStore.deltaHeight}px)`}
-                // scrollHeight={'flex'}            
+                // scroll
+                scrollable
+                scrollHeight='flex'                
 
-                selectionMode="multiple" cellSelection
-
-                stripedRows
-                
-                resizableColumns  columnResizeMode="fit"            
+                showGridlines
+                stripedRows                
+                resizableColumns 
+                columnResizeMode="fit" 
+                emptyMessage="Нет данных"         
                 
                 // onSort={onSort} sortField={lazyParams.sortField} sortOrder={lazyParams.sortOrder}
                 // filterMatchMode={}
                 // onFilter={onFilter}      
-
-                loading={query?.loading}
-                showGridlines>
+                >
                     {query?.columns?.map((col, i) => {
                         return <Column 
-                            key={i} field={col} header={col} 
+                            key={i}
+                            field={col}
+                            header={col}
                             className='no-filter-icon'
                             body={data => {return <div dangerouslySetInnerHTML={{ __html: data[col] }}></div>}}
-                            sortable 
+                            sortable
                             filter filterPlaceholder="" showFilterMatchModes={false} filterMatchMode={'contains'}
                         />
                     })}

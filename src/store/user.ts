@@ -10,55 +10,80 @@ interface themeOption {
     logoClass?: string;
 }
 
+const DEFAULT_THEME_OPTIONS: themeOption[] = [
+    { value: 'arya-blue', logoClass: 'dark' },
+    { value: 'arya-green', logoClass: 'dark' },
+    { value: 'arya-orange', logoClass: 'dark' },
+    { value: 'arya-purple', logoClass: 'dark' },
+    { value: 'bootstrap4-light-blue',logoClass: 'light' },
+    { value: 'bootstrap4-dark-blue', logoClass: 'dark' },
+    { value: 'bootstrap4-light-purple', logoClass: 'light' },
+    { value: 'bootstrap4-dark-purple', logoClass: 'dark' },
+    { value: 'fluent-light', logoClass: 'light' },
+    { value: 'luna-amber', logoClass: 'dark' },
+    { value: 'luna-green', logoClass: 'dark' },
+    { value: 'luna-blue', logoClass: 'dark' },
+    { value: 'luna-pink', logoClass: 'dark' },                        
+    { value: 'md-dark-deeppurple', logoClass: 'dark' },
+    { value: 'md-dark-indigo', logoClass: 'dark' },
+    { value: 'md-light-deeppurple', logoClass: 'light' },        
+    { value: 'md-light-indigo', logoClass: 'light' },        
+    { value: 'mdc-dark-deeppurple', logoClass: 'dark' },
+    { value: 'mdc-dark-indigo', logoClass: 'dark' },
+    { value: 'mdc-light-deeppurple', logoClass: 'light' },        
+    { value: 'mdc-light-indigo', logoClass: 'light' },        
+    { value: 'nova', logoClass: 'light' },
+    { value: 'nova-accent', logoClass: 'light' },
+    { value: 'nova-alt', logoClass: 'light' },
+    { value: 'rhea', logoClass: 'light' },
+    { value: 'saga-blue', logoClass: 'light' },
+    { value: 'saga-green', logoClass: 'light' },
+    { value: 'saga-orange', logoClass: 'light' },
+    { value: 'saga-purple', logoClass: 'light' },
+    { value: 'tailwind-light', logoClass: 'light' },
+    { value: 'vela-blue', logoClass: 'dark' },
+    { value: 'vela-green', logoClass: 'dark' },
+    { value: 'vela-orange', logoClass: 'dark' },
+    { value: 'vela-purple', logoClass: 'dark' },
+];
+const DEFAULT_THEME: string = 'vela-orange';
+
+interface IUserSettings {
+    username: string | null;
+    last_name: string ;
+    first_name: string;
+    email: string;
+    groups: string[];
+    last_login: string;
+    theme: string;
+    errors: boolean;
+}
+
+type IUserSettingsToSave = Pick<IUserSettings, 'theme' | 'errors'>
+
+export class UserSettingsToSave implements IUserSettingsToSave {
+    theme: string;
+    errors: boolean;
+
+    constructor(settings: IUserSettings) {
+        this.theme = settings.theme;
+        this.errors = settings.errors;
+    }
+}
+
 export class UserStore {
     root: RootStore;
-    username?: string | null = '';
 
+    username?: string | null = '';
     last_name?: string = '';
     first_name?: string = '';
     email?: string = '';
     groups?: string[] = [];
     last_login?: string = '';
-
     theme?: string | null = 'vela-blue';
     errors?: boolean = false;
 
-    themeOptions: themeOption[] = [
-        { value: 'arya-blue', logoClass: 'dark' },
-        { value: 'arya-green', logoClass: 'dark' },
-        { value: 'arya-orange', logoClass: 'dark' },
-        { value: 'arya-purple', logoClass: 'dark' },
-        { value: 'bootstrap4-light-blue',logoClass: 'light' },
-        { value: 'bootstrap4-dark-blue', logoClass: 'dark' },
-        { value: 'bootstrap4-light-purple', logoClass: 'light' },
-        { value: 'bootstrap4-dark-purple', logoClass: 'dark' },
-        { value: 'fluent-light', logoClass: 'light' },
-        { value: 'luna-amber', logoClass: 'dark' },
-        { value: 'luna-green', logoClass: 'dark' },
-        { value: 'luna-blue', logoClass: 'dark' },
-        { value: 'luna-pink', logoClass: 'dark' },                        
-        { value: 'md-dark-deeppurple', logoClass: 'dark' },
-        { value: 'md-dark-indigo', logoClass: 'dark' },
-        { value: 'md-light-deeppurple', logoClass: 'light' },        
-        { value: 'md-light-indigo', logoClass: 'light' },        
-        { value: 'mdc-dark-deeppurple', logoClass: 'dark' },
-        { value: 'mdc-dark-indigo', logoClass: 'dark' },
-        { value: 'mdc-light-deeppurple', logoClass: 'light' },        
-        { value: 'mdc-light-indigo', logoClass: 'light' },        
-        { value: 'nova', logoClass: 'light' },
-        { value: 'nova-accent', logoClass: 'light' },
-        { value: 'nova-alt', logoClass: 'light' },
-        { value: 'rhea', logoClass: 'light' },
-        { value: 'saga-blue', logoClass: 'light' },
-        { value: 'saga-green', logoClass: 'light' },
-        { value: 'saga-orange', logoClass: 'light' },
-        { value: 'saga-purple', logoClass: 'light' },
-        { value: 'tailwind-light', logoClass: 'light' },
-        { value: 'vela-blue', logoClass: 'dark' },
-        { value: 'vela-green', logoClass: 'dark' },
-        { value: 'vela-orange', logoClass: 'dark' },
-        { value: 'vela-purple', logoClass: 'dark' },
-    ];    
+    themeOptions: themeOption[] = DEFAULT_THEME_OPTIONS;   
 
     constructor(root: RootStore) {
         this.root = root;
@@ -80,44 +105,37 @@ export class UserStore {
         const localStorage = window.localStorage;
         let theme = localStorage.getItem('theme');
         if (theme && theme !== this.theme)
-            this.setTheme(theme)
+            this.updateTheme(theme);
         let errors = localStorage.getItem('errors');        
         if (errors)
             this.setErrors(errors === 'true');
 
         // load user info
-        // let userData = await User.loadSettings((data: any) => this.setUser(data), (error) => toast.error(error));
         try {
             let userData = await User.loadSettings();        
-            this.setUser(userData)
+            this.setUserSettings(userData)
         } catch(error) {
             toast.error(`${error}`);                
         }        
     }
 
-    saveSettings = async () => {
-        let data ={
-            "theme": this.theme,
-            "errors": this.errors
-        }
-
+    saveUserSettings = async () => {
+        let settings = new UserSettingsToSave(this as IUserSettings);
         try {
-            let _ = await User.saveSettings(data);
+            let _ = await User.saveSettings(settings);
             toast.success('Настройки успешно сохранены')
         } catch(error) {
             toast.error(`${error}`);                
-        }           
-
-        // User.saveSettings(data, (data: any) => toast.success('Настройки успешно сохранены'), (error) => toast.error(error));
+        }
     }
 
-    setUser = (data: any) => {
-        this.username = data.username;
-        this.last_name = data.last_name;
-        this.first_name = data.first_name;
-        this.email = data.email;
-        this.last_login = data.last_login;
-        this.groups = data.groups;
+    setUserSettings = (settings: IUserSettings) => {
+        this.username = settings.username;
+        this.last_name = settings.last_name;
+        this.first_name = settings.first_name;
+        this.email = settings.email;
+        this.last_login = settings.last_login;
+        this.groups = settings.groups;
     }
 
     setErrors = (errors: boolean) => {
@@ -127,11 +145,15 @@ export class UserStore {
 
     setTheme = (theme: string) => {
         window.localStorage.setItem('theme', theme)
+        this.theme = theme;
+    }
+
+    updateTheme = (theme: string) => {        
         let themeLink = document.getElementById('app-theme') as HTMLLinkElement;
         if (themeLink && theme) {
             themeLink.href = fullUrl(`themes/${theme}/theme.css`);
-            this.theme = theme;
-            setTimeout(this.root.tabViewStore?.setDeltaHeight, 1000);
+            this.setTheme(theme);
+            setTimeout(this.root.tabViewStore?.setDatatableHeight, 1000);
         }
     }
 

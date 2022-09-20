@@ -8,11 +8,9 @@ from pydantic import (
 )
 
 
-class SearchModel(BaseModel):
+class BaseSearchModel(BaseModel):
     base64: Optional[int] = None
     value: str
-    date_from: datetime = None
-    date_to: datetime = None
 
     @validator('value')
     def try_decode_base64(cls, v, values, **kwargs):
@@ -22,6 +20,11 @@ class SearchModel(BaseModel):
             return base64.b64decode(v).decode('UTF-16')
         except Exception:
             ValueError("Ошибка декодирования base64")
+
+
+class SearchModel(BaseSearchModel):
+    date_from: datetime = None
+    date_to: datetime = None
 
     @validator('date_from', 'date_to', pre=True)
     def try_dates(cls, v, values, **kwargs):
@@ -41,7 +44,7 @@ class Query(BaseModel):
     id: str
     title: str
     icon: str
-    iframe: bool    
+    iframe: bool
 
 
 class QueryList(BaseModel):
@@ -50,17 +53,3 @@ class QueryList(BaseModel):
     def dict(self, *args, **kwargs):
         data = super().dict(*args, **kwargs)
         return data['__root__'] if self.__custom_root_type__ else data
-
-
-class TypeDetectModel(BaseModel):
-    base64: Optional[int] = None
-    value: str
-
-    @validator('value')
-    def try_decode_base64(cls, v, values, **kwargs):
-        if values.get('base64') != 1:
-            return v
-        try:
-            return base64.b64decode(v).decode('UTF-16')
-        except Exception:
-            ValueError("Ошибка декодирования base64")

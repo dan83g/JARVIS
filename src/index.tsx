@@ -1,5 +1,6 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { render } from 'react-dom';
+import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
@@ -27,14 +28,13 @@ export function useRootStore() {
     return context
 }
 
-
-ReactDOM.render(
+const root = createRoot(document.getElementById('root'));
+root.render(
     <React.StrictMode>
         <RootStoreProvider>
             <App />
         </RootStoreProvider>        
-    </React.StrictMode>,
-    document.getElementById('root')
+    </React.StrictMode>
 );
 
 reportWebVitals();

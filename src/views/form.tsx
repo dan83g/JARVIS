@@ -1,59 +1,82 @@
 import React, { useState, useEffect, useRef, ReactPropTypes } from 'react';
-import { InputText } from 'primereact/inputtext';
+import { AutoComplete } from 'primereact/autocomplete';
 import { Button } from 'primereact/button';
 import { CalendarInlineControl } from './controls/datepicker/inlinecalendar';
 import { SelectButtonControl } from './controls/selectbutton/selectbutton';
-import { ComboBoxControl } from './controls/combo/combobox';
 import { ButtonControl } from './controls/button/button';
-
-import { toast } from "react-toastify";
 import { observer } from 'mobx-react-lite';
 import { useRootStore } from '../index';
 import { OverlayPanel } from 'primereact/overlaypanel';
 import { ContextMenu } from 'primereact/contextmenu';
+import { AutoCompleteControl, AutoCompletePropsEx } from './controls/autocomplete/autocomplete';
 
 
 export const FormControl = observer(() => {
     // const store = useRootStore();
     // store.userStore......
-    const { formStore } = useRootStore()
+    const { formStore, tabViewStore } = useRootStore()
     const overlayPanel = useRef<OverlayPanel>(null);
-    const cmTypes = useRef<ContextMenu>(null);
+    // const cmTypes = useRef<ContextMenu>(null);
 
     useEffect(() => {
-        let elInputText = document.querySelector(`.p-input-icon-right > .p-inputtext.search-input-text`) as HTMLElement;
-        let elTypeBtn = document.querySelector(`.p-input-icon-right > .p-button.suffix`) as HTMLElement;
-        if (elInputText)
+        let elInputText = document.querySelector(`.search-input-text > .p-inputtext`) as HTMLElement;
+        let elTypeBtn = document.querySelector(`.search-type-btn`) as HTMLElement;
+        if (elInputText && elTypeBtn)
             elInputText.style.paddingRight = `${elTypeBtn.getBoundingClientRect().width + 5}px`;
     }, [formStore.typeValue]);    
 
+    useEffect(() => {
+        tabViewStore.setDatatableHeight();
+    }, [formStore, formStore.advancedVisibility]);    
+
+    const toogleAdvancedSettings = () => {
+        formStore.setAdvancedVisibility(formStore.advancedVisibility ? false : true);
+    };
     return (
         <form className="flex justify-content-center align-items-center" onSubmit={formStore.onFormSubmit}>
-            <div className="grid formgrid mt-3" style={{width: "750px"}}>
+            <div className="search-form grid formgrid mt-3">
                 <div className="field col-10">
-                    <ContextMenu model={formStore.typesMenuOptions} ref={cmTypes}></ContextMenu>
-                    <span className="p-input-icon-left p-input-icon-right" style={{width:"100%"}}>
-                        <i className="pi pi-search" />
-                            <InputText className='search-input-text border-radius-10' value={formStore.searchText} onChange={(e:any) => formStore.setSearchText(e.target.value)} placeholder={'Введите текст для поиска'} style={{width:"100%"}}/>
-                            <Button type="button" className="btn-type suffix p-input-suffix p-button-text border-radius-10"  onClick={(e) => cmTypes?.current?.show(e)} label={formStore.typeValue}/>
+                    <AutoCompleteControl                        
+                        value={formStore.searchText}
+                        suggestions={formStore.autoCompleteList}
+                        completeMethod={(e: any) => formStore.setSearchInfo(e.query)}
+                        onSelect={(e: any) => formStore.setSearchInfo(e.value)}
+                        onChange={(e: any) => formStore.setSearchText(e.value)} 
+                        typeValue={formStore.typeValue}
+                        typesMenuOptions={formStore.TypesMenuOptions}              
+                    />
+                    {/* <ContextMenu ref={cmTypes} model={formStore.typesMenuOptions}></ContextMenu> */}
+                    {/* <span className="p-input-icon-left p-input-icon-right width-100">
+                        <i className="search-input-icon pi pi-search" />
+                            <AutoComplete  className='search-input-text width-100' placeholder={'Введите текст для поиска'}
+                                value={formStore.searchText}
+                                suggestions={formStore.autoCompleteList}
+                                completeMethod={(e:any) => formStore.getSearchInfo(e.query)}
+                                onChange={(e:any) => formStore.setSearchText(e.value)} 
+                                onSelect={(e:any) => formStore.getSearchInfo(e.value)}
+                            />
+                            <ButtonControl visible={Boolean(formStore.typeValue)} type="button" className="search-type-btn btn-type suffix p-input-suffix p-button-text border-radius-10"  onClick={(e) => cmTypes?.current?.show(e)} label={formStore.typeValue}/>
                         <i/>
-                    </span>
+                    </span> */}
                 </div>
-                <div className="field col-2" style={{textAlign: "left"}}>
+                <div className="field col-2 text-center">
                     <Button icon="pi pi-search" className="p-button-rounded p-button-outlined" title='Найти'/>
-                    <Button type="button" icon="pi pi-sliders-h" className="p-button-rounded p-button-outlined search-settings" onClick={() => formStore.setAdvancedVisibility(formStore.advancedVisibility ? false : true)} title='Инструменты'/>
+                    <Button type="button" icon="pi pi-sliders-h" className="p-button-rounded p-button-outlined search-settings" onClick={toogleAdvancedSettings} title='Инструменты'/>
                 </div>
                
-                <div className="field col-12 mb-1 p-selectbutton date-filter" style={{textAlign: "center"}}>                    
+                <div className="field col-12 mb-1 p-selectbutton date-filter text-left">
                     <SelectButtonControl
+                        className='ml-4'                    
                         visible={formStore.advancedVisibility}
                         value={formStore.dateFilterValue} options={formStore.dateFilterOptions} 
                         idPrefix="date-filter"
                         onChange={(e:any) => {
-                            if (e.value === "custom"){
+                            if (e.value === "custom" || (formStore.dateFilterValue === "custom" && e.value === null)) {
                                 overlayPanel.current?.show(e, document.getElementById('date-filter-custom') as HTMLElement);
+                                formStore.setDateFilterValue("custom");
+                            } else {
+                                formStore.setDateFilterValue(e.value);
                             }
-                            formStore.setDateFilterValue(e.value);
                         }}
                     />
                     <OverlayPanel ref={overlayPanel} id="datetime-overlay-panel" showCloseIcon style={{ textAlign: "right" }}>
@@ -67,10 +90,7 @@ export const FormControl = observer(() => {
                         />
                     </OverlayPanel>
                 </div>
-                {/* <div className="field col-12 mb-1">                    
-                    <SelectButtonControl className='type-filter' visible={formStore.advancedVisibility} value={formStore.typeValue} options={formStore.typesList} onChange={(e:any) => formStore.setTypeValue(e.value)}/>
-                </div> */}
-                <div className="field col-8 mt-1"/>
+                <div className="field col-6 mt-1"/>
                 <div className="field col-4 mt-1">                    
                     <ButtonControl type="button" label="Очистить" icon="pi pi-times" className="p-button-text" style={{height: "1.75rem", width: "120px"}} onClick={() => formStore.onClearClick()} visible={formStore.advancedVisibility}/>
                     <ButtonControl label="Найти" icon="pi pi-search" className="p-button-outlined" style={{height: "1.75rem", width: "95px"}} visible={formStore.advancedVisibility}/>

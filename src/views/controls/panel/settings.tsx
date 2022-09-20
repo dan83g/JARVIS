@@ -15,7 +15,7 @@ export const SettingsPanel = observer(() => {
     const op = useRef<OverlayPanel>(null);
 
     const optionTemplate = (option: any) => {
-        return <div id={option.value} style={{width: "100%", height: "100%"}} title={option.value}/>
+        return <div className="theme-option" id={option.value} title={option.value}/>
     }
 
     return (
@@ -27,7 +27,7 @@ export const SettingsPanel = observer(() => {
             />
             <OverlayPanel ref={op} id="overlay-panel" style={{ width: "250px" }}>
                 <label htmlFor="selection-theme">Тема</label>
-                <SelectButton id="selection-theme" value={userStore.theme} options={userStore.themeOptions} onChange={(e) => userStore.setTheme(e.value)} itemTemplate={optionTemplate}/>
+                <SelectButton id="selection-theme" value={userStore.theme} options={userStore.themeOptions} onChange={(e: any) => userStore.updateTheme(e.value)} itemTemplate={optionTemplate}/>
             </OverlayPanel>
         </div>
     );

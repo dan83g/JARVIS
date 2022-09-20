@@ -1,42 +1,49 @@
 import { Requests, SuccessdHandler, ErrorHandler, fullUrl } from "./http";
 
-export interface QueryParams {
+export interface IQueriesParams {
     value: string;
     typename?: string;
     date_from?: Date;    
     date_to?: Date;
 }
 
+export interface IQueryParams {
+    value: string;
+    limit: number;
+    offset: number;
+    nocache: number;
+}
+
 export const SearchTypes = {    
     getList(): any {
-        return Requests.getWithParams('GET', '/search/type.list');
-    },
-    detect(value?: string): any {
-        return Requests.getWithParams('GET', '/search/type.detect', {value: value});
+        return Requests.requestWithParams('GET', '/search/type.list');
     }
 } as const;
 
 export const User = {    
     loadSettings(): Promise<any> {
-        return Requests.getWithParams('GET', '/api/v1/user');
+        return Requests.requestWithParams('GET', '/api/v1/user');
     },
     saveSettings(data: any): Promise<any> {
-        return Requests.getWithJson('POST', '/api/v1/user');
+        return Requests.requestWithJson('POST', '/api/v1/user');
     },
 } as const;
 
 export const Queries = {
-    getData(id: string): Promise<any> {
-        return Requests.getWithParams('GET', `/search/query/${id}`);
+    getData(id: string, params: IQueryParams): Promise<any> {
+        return Requests.requestWithParams('GET', `/search/query/${id}`, params);
     }
 } as const;
 
 export const Search = {
-    getQueries(params?: QueryParams, url: string = '/search/'): Promise<any> {
+    getQueries(params?: IQueriesParams, url: string = '/search/'): Promise<any> {
         if (params)
             url = `${url}${params.typename ? params.typename + '/': ''}`
-        return Requests.getWithParams('POST', url, params);
+        return Requests.requestWithParams('POST', url, params);
     },
+    valueInfo(value?: string): any {
+        return Requests.requestWithParams('GET', '/search/value.info', {value: value});
+    }
 } as const;
 
 

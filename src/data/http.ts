@@ -28,7 +28,7 @@ const errorHandler = (error: any): string => {
 }
 
 export const Requests = {
-    async getWithParams(method: Method, url: string, params?: any): Promise<any> {
+    async requestWithParams(method: Method, url: string, params?: any): Promise<any> {
         try {
             let response = await axios({
                 method: method,
@@ -41,7 +41,7 @@ export const Requests = {
             throw errorHandler(error);
         }        
     },
-    async getWithJson(method: Method, url: string, data?: any): Promise<any> {
+    async requestWithJson(method: Method, url: string, data?: any): Promise<any> {
         try {
             let response = await axios({
                 method: method,

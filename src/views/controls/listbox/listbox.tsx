@@ -1,17 +1,35 @@
 import React, { useState } from 'react';
-import { ListBox } from 'primereact/listbox';
+import { ListBox, ListBoxProps } from 'primereact/listbox';
+import { tooltipOptions } from '../tooltip/options';
 
-export const ListBoxControl = (props: any) => {
-    const defaultTemplate = (option:any) => {
+
+export enum LogType {
+    Nodata = 'nodata',
+    Warning = "warning",
+    Error = "error"
+};
+
+export interface LogOption {
+    title: string;
+    type: LogType;
+    message: string;
+}
+
+export const ListBoxLog = (props: ListBoxProps) => {
+    const logTemplate = (option: LogOption) => {
+        let options = {
+            'nodata': 'pi pi-thumbs-up green',
+            'warning': 'pi pi-thumbs-down yellow',
+            'error': 'pi pi-thumbs-down red'
+        }
         return (
-            <div className="country-item">
-                <img alt={option.name} src="showcase/demo/images/flag_placeholder.png" onError={(e) => (e.target as any).src = 'https://www.primefaces.org/wp-content/uploads/2020/05/placeholder.png'} className={`flag flag-${option.code.toLowerCase()}`} />
-                <div>{option.name}</div>
-            </div>
+            <>
+                <i className={options[option.type] ?? options['error']}> {option.title}: </i>  {option.message}
+            </>
         );
     }
-    // itemTemplate={defaultTemplate}
+    
     return (
-        (props.visible ?? true) && <ListBox value={props.value} options={props.options} style={props.style} onChange={props.onChange} optionLabel="name" tooltip={props.tooltip} tooltipOptions={{className: 'w-4 ml-2'}}/>
+        <ListBox {...props} optionLabel="message" tooltipOptions={tooltipOptions('bottom')} listStyle={{ maxHeight: '111px', height: '111px' }} itemTemplate={logTemplate}/>
     );
 }

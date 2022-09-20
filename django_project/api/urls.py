@@ -4,7 +4,7 @@ from security.views import UserSettingsView
 
 urlpatterns = [
     # test
-    path('v1/test', views.test),
+    path('v1/ocr', views.ocr),
 
     # ping
     path('v1/ping', views.ping),

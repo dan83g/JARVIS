@@ -49,8 +49,8 @@ class UserManager(BaseUserManager):
 
 class proxy_user(User):
     class Meta:
-        verbose_name = 'Группы безопасности'
-        verbose_name_plural = 'Группы безопасности'
+        verbose_name = 'Пользователи'
+        verbose_name_plural = 'Пользователи'
         proxy = True
 
 

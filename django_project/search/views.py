@@ -4,6 +4,9 @@ from django.views import View
 from django.db.models import Q
 from django.core.cache import cache
 import re as regex
+
+from search.exceptions import (
+    RedisGetError, RedisSetError, DBTypesDoNotExist)
 from . import models, forms
 import logging
 from .searcher import searcher, searchers
@@ -12,8 +15,8 @@ from lib.log import Log, LoggingHandlers
 from lib.decorators import (
     ViewExcept, ViewRmVaryHeader, ViewAuth, ViewMethod, ViewInputValidation)
 from JARVIS.enums import (
-    REDIS_CACHE_TTL, SERVER_VERSION, QUERY_LOGGING)
-from .service import Search, TypeDetector
+    REDIS_CACHE_TTL, SERVER_VERSION, QUERY_LOGGING, HTTP_ERROR_CODE)
+from .service import Search, TypeDetector, AutoComplete
 from JARVIS.enums import HTTP_ERROR_CODE
 logger = logging.getLogger(__name__)
 
@@ -100,6 +103,12 @@ class SearchView(View):
     @ViewExcept(message="При подгоотовке запросов возникла ошибка")
     @ViewRmVaryHeader()
     def post(request, typename: str = None, name: str = None, *args, **kwargs):
+        # add data to autocomplete
+        try:
+            AutoComplete(request.pydantic_model.value).add_text_to_redis()
+        except RedisSetError:
+            pass
+        # prepare Search queries
         search_object = Search(
             user=request.user,
             typename=typename,
@@ -159,10 +168,18 @@ def query(request, hash: str = None):
 
 @ViewMethod(method=['GET'])
 @ViewAuth()
-@ViewInputValidation(model=forms.TypeDetectModel)
+@ViewInputValidation(model=forms.BaseSearchModel)
 @ViewRmVaryHeader()
-def type_detect(request, *args, **kwargs):
-    typename = TypeDetector(request.pydantic_model.value).detect()
-    if not typename:
-        return Response.json_response(message='Тип идентификаторов не определен')
-    return Response.json_data_response(data={'typename': typename})
+def value_info(request, *args, **kwargs):
+    autocomplete = []
+    try:
+        autocomplete = AutoComplete(request.pydantic_model.value).get_text_list()
+    except (RedisGetError, ) as error:
+        logger.error(f"{error}")
+
+    typename = ""
+    try:
+        typename = TypeDetector(request.pydantic_model.value).detect() or ""
+    except (DBTypesDoNotExist) as error:
+        logger.error(f"{error}")
+    return Response.json_data_response(data={'typename': typename, 'autocomplete': autocomplete})

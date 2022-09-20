@@ -1,32 +1,37 @@
+from redis.exceptions import (
+    RedisError
+)
+
+
+class RedisNoDataError(RedisError):
+    def __init__(self):
+        super().__init__(
+            "No data in redis"
+        )
+
+
+class RedisGetError(RedisError):
+    def __init__(self):
+        super().__init__(
+            "Redis get data error"
+        )
+
+
+class RedisSetError(RedisError):
+    def __init__(self):
+        super().__init__(
+            "Redis set data error"
+        )
+
+
 class SearchTypeException(Exception):
     pass
 
 
-class DBGetSearchTypesDoesNotExists(SearchTypeException):
+class DBTypesDoNotExist(SearchTypeException):
     def __init__(self):
         super().__init__(
-            "Search types were not found in db"
-        )
-
-
-class CacheGetSearchTypesDoNotExists(SearchTypeException):
-    def __init__(self):
-        super().__init__(
-            "Search types were not found in cache"
-        )
-
-
-class CacheGetSearchTypesError(SearchTypeException):
-    def __init__(self):
-        super().__init__(
-            "Cache get error (search types)"
-        )
-
-
-class CacheSetSearchTypesError(SearchTypeException):
-    def __init__(self):
-        super().__init__(
-            "Cache set error (search types)"
+            "Search types is not found in db"
         )
 
 
@@ -34,10 +39,10 @@ class SerachException(Exception):
     pass
 
 
-class QueriesDoesNotExists(SerachException):
+class QueriesDoesNotExist(SerachException):
     def __init__(self):
         super().__init__(
-            "Queries were not found in db for current text"
+            "Queries is not found in db for current text"
         )
 
 
@@ -57,11 +62,11 @@ class CacheSetError(SerachException):
         )
 
 
-class SearchQueryDoesNotExistsInCache(SerachException):
+class SearchQueryDoesNotExistInCache(SerachException):
     def __init__(self, hash):
         self.hash = hash
         super().__init__(
-            "Coordinates were not found in cache"
+            "Coordinates is not found in cache"
             f"hash: {hash}"
         )
 

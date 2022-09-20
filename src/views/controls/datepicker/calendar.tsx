@@ -2,6 +2,8 @@ import React from 'react';
 import { Calendar, CalendarProps } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { addLocale } from 'primereact/api';
+import { tooltipOptions } from '../tooltip/options';
+
 
 export const CalendarControl = (props: CalendarProps) => {
     let today = new Date();
@@ -39,7 +41,7 @@ export const CalendarControl = (props: CalendarProps) => {
         return <Dropdown value={e.value} options={e.options} onChange={(event) => e.onChange(event.originalEvent, event.value)} className="p-ml-2" style={{ lineHeight: 1 }} />;
     }
 
-    return <Calendar id={props.id} tooltip={props.tooltip} tooltipOptions={{className: 'w-3 ml-2'}} style={props.style} value={props.value} onChange={props.onChange}
+    return <Calendar id={props.id} tooltip={props.tooltip} tooltipOptions={tooltipOptions('bottom')} style={props.style} value={props.value} onChange={props.onChange}
         locale='ru' yearRange="2010:2040" mask="99.99.9999" dateFormat="dd.mm.yy"
         monthNavigator yearNavigator monthNavigatorTemplate={monthNavigatorTemplate} yearNavigatorTemplate={yearNavigatorTemplate} 
     />
