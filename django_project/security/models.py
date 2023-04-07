@@ -11,7 +11,6 @@ logger = logging.getLogger(__name__)
 CHOICE_LDAP_PROTOCOL = (
     ('ldap', 'LDAP'),
     ('ldaps', 'LDAPS'),
-    ('tls', 'TLS'),
 )
 
 CHOICE_RDN = (
@@ -20,14 +19,25 @@ CHOICE_RDN = (
     ('sAMAccountName', 'sAMAccountName'),
 )
 
+CHOICE_LDAP_USER_GUID = (
+    ('uidNumber', 'uidNumber'),
+    ('objectGUID', 'objectGUID'),
+    ('ibm-entityUUID', 'ibm-entityUUID'),
+    ('dominoUNID', 'dominoUNID'),
+    ('GUID', 'GUID'),
+    ('nsuniqueID', 'nsuniqueID'),
+)
+
 
 class UserManager(BaseUserManager):
-    def create_user(self, theme: str = 'vela-blue', errors: bool = False, password=None):
+    def create_user(self, theme: str = 'vela-blue', errors: bool = False, password=None, is_staff: bool = False, is_superuser: bool = False):
         """Creates and saves a User
         """
         user = self.model(
             errors=errors,
             theme=theme,
+            is_staff=is_staff,
+            is_superuser=True
         )
         user.set_password(password)
         user.save(using=self._db)
@@ -73,6 +83,7 @@ class ldap(models.Model):
     timeout = models.IntegerField(default=3, verbose_name='Время ожидания', null=False, help_text='Время ожидания подключения к серверу')
     rdn = models.CharField(max_length=20, choices=CHOICE_RDN, default='cn', blank=False, verbose_name='RDN', help_text='Уникальный атрибут для поиска пользователей')
     search_dn = models.CharField(max_length=100, default='', blank=True, verbose_name='DN поиска', help_text='Ветка дерева для поиска пользователей, например: ou=users,dc=cpi,dc=dsp')
+    user_guid_param = models.CharField(max_length=50, choices=CHOICE_LDAP_USER_GUID, default='objectGUID', verbose_name='Название GUID пользователя', help_text='Название уникального параметра пользователя, для сравнения при обновлении данных пользователя')
     query = models.CharField(max_length=255, default='', blank=True, verbose_name='Запрос', help_text='Запрос к LDAP-серверу, пример: <br>(&(objectClass=posixAccount)(givenName=*)(sn=*)(uid={username}))<br> или <br> (&(objectCategory=Person)(!(UserAccountControl:1.2.840.113556.1.4.803:=2))(givenName=*)(sn=*)(sAMAccountName={username}))')
 
     class Meta:
@@ -98,7 +109,7 @@ class ldap(models.Model):
             self._server = Server(self.host, port=self.port, connect_timeout=self.timeout, get_info=ALL, use_ssl=True)
         else:
             self._server = Server(self.host, port=self.port, connect_timeout=self.timeout, get_info=ALL)
-        self._conn = Connection(self._server, self.user_dn, self.password, auto_bind=True)
+        self._conn = Connection(self._server, self.user_dn, self.password, auto_bind='DEFAULT')
 
     def test_connection(self) -> bool:
         self._server = Server(self.host, port=self.port, connect_timeout=self.timeout, get_info=ALL)
@@ -110,27 +121,34 @@ class ldap(models.Model):
             self.errors.append(f"Ошибка теста подключения {self._conn.last_error or error}")
             return False
 
-    def update_user_groups(self, user: User, groups: list) -> None:
-        """update user groups, groups - list"""
+    def update_user_groups(self, user: User, groups: list[str]) -> None:
+        """Update user membership in groups
+
+        :param user: django User class
+        :type user: User
+        :param groups: List of groups
+        :type groups: list
+        """
 
         # retrieve current user groups
         current_groups = {}
         for group in user.groups.all():
             current_groups[group.name] = group
 
-        # перебираем все группы новые группы
+        # enumerate new groups
         for group_name in groups:
             if group_name in set(current_groups.keys()):
                 del current_groups[group_name]
             else:
-                # если группы нет, среди текущих групп пользователя, то добавляем пользователя в эту группу
-                entering_group, created = Group.objects.get_or_create(name=group_name)
+                # if group not present, then add user to group
+                entering_group, _ = Group.objects.get_or_create(name=group_name)
                 user.groups.add(entering_group)
-        # исключаем пользователя из оставшихся групп
+
+        # exclude user from other groups
         for group in current_groups.values():
             user.groups.remove(group.id)
 
-    def update_users(self, user: User = None) -> bool:
+    def update_users(self, user: User) -> bool:
         """update user properties from ldap, user - object of User class"""
 
         # connect
@@ -187,7 +205,7 @@ class ldap(models.Model):
                 user.save()
         return True
 
-    def to_dict(self):
+    def selialize(self):
         return self.__dict__
 
     def search(self):

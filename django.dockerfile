@@ -14,9 +14,11 @@ RUN apt-get update -qq \
     msodbcsql17 \
     # postgresql
     odbc-postgresql \
+    # mariadb
+    odbc-mariadb \
     # mysql
-    # mysql-community-client-plugins \
-    # mysql-connector-odbc \
+    mysql-community-client-plugins \
+    mysql-connector-odbc \
     # sqllite
     libsqliteodbc \
     # clear build

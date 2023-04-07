@@ -10,11 +10,11 @@ class CoordinatesTypesDoesNotExists(CoordinatesException):
 
 
 class CacheGetError(CoordinatesException):
-    def __init__(self, hash):
-        self.hash = hash
+    def __init__(self, id):
+        self.id = id
         super().__init__(
             "Cache get error"
-            f"hash: {hash}"
+            f"id: {id}"
         )
 
 
@@ -26,9 +26,9 @@ class CacheSetError(CoordinatesException):
 
 
 class CoordinatesDoesNotExistsInCache(CoordinatesException):
-    def __init__(self, hash):
-        self.hash = hash
+    def __init__(self, id):
+        self.id = id
         super().__init__(
             "Coordinates were not found in cache"
-            f"hash: {hash}"
+            f"id: {id}"
         )

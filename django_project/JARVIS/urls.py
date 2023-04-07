@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.urls import path, include
 from . import views
+# from security.views import api as user_api
+# from api.views import api as api_api
+from .views import api
 
 handler404 = views.show_404
 handler500 = views.show_500
@@ -15,19 +18,18 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # ============================= HOME_PAGE ===========================
-    path(r'', views.home_page),
-
-    # ============================= USER ===============================
-    path(r'user/login/', views.login_page),
-    path(r'user/login', views.login),
-    path(r'user/logout', views.logout),
-    path(r'user/status', views.status),
+    path("", views.home_page),
 
     # ============================= APPS ================================
-    path(r'search/', include('search.urls')),
+    # path(r'search/', include('search.urls')),
     path(r'dtsearch/', include('dtsearch.urls')),
     path(r'map/', include('map.urls')),
 
+    path("", api.urls)
+    # ============================= user =================================
+    # path("user/", user_api.urls),
+
     # ============================= API =================================
-    path(r'api/', include('api.urls')),
+    # path(r'api/', api_api.urls),
+    # path(r'api/', include('api.urls')),
 ]

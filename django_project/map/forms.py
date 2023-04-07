@@ -5,9 +5,9 @@ from typing import Optional
 
 
 class MapUserDataModel(BaseModel):
-    id: int = None
-    layername: str = None
-    data: dict = None
+    id: int | None = None
+    layername: str | None = None
+    data: dict | None = None
 
 
 class MapGeoName(MapUserDataModel):
@@ -18,17 +18,17 @@ class MapCoordinates(BaseModel):
     """PyDantic model for coordinates
     :param coordinates: string with coordinates (optional)
     :type coordinates: string
-    :param hash: hash of list geo json coordinates (optional)
-    :type hash: string
+    :param id: id of list geo json coordinates (optional)
+    :type id: string
     """
+    id: Optional[str] = None
     coordinates: Optional[str] = None
-    coordinates_hash: Optional[str] = None
 
 
 class MapIndexModel(BaseModel):
     base64: Optional[int] = None
-    geoname: str = None
-    coordinates: str = None
+    geoname: str | None = None
+    coordinates: str | None = None
 
     @validator('geoname', 'coordinates')
     def try_decode_base64(cls, v, values, **kwargs):

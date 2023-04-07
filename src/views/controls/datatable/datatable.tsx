@@ -1,13 +1,11 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { DataTable, DataTableProps, DataTablePageParams } from 'primereact/datatable';
+import React, { useState, useRef } from 'react';
+import { DataTable, DataTableProps, DataTablePageEvent, DataTableSelectionChangeEvent } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { observer } from 'mobx-react-lite';
 import { BookType } from  'xlsx';
-import { Button } from 'primereact/button';
 import { ContextMenu } from 'primereact/contextmenu';
 import { BestPaginatorTemplate } from '../paginator/template';
 import { PaginatorTemplate } from 'primereact/paginator';
-import { ComboBoxControl } from '../combo/combobox';
 import copy from 'copy-to-clipboard';
 import { IQuery } from '../../../store/tabview';
 
@@ -17,9 +15,9 @@ const getFilename = (queryName: string, ext: string): string => {
     return `${queryName}-${date.toISOString().slice(0, 10)}-${date.getTime()}.${ext}`;
 }
 
-export interface IDataTablePageParams extends DataTablePageParams {
-    queryId: string;
-}
+// export interface IDataTablePageParams extends DataTablePageEvent {
+//     queryId: string;
+// }
 
 // export interface IPartialQuery {
 //     id: string;
@@ -32,18 +30,18 @@ export interface IDataTablePageParams extends DataTablePageParams {
 //     offset: number;
 // }
 
-export interface IDataTablePageParams extends DataTablePageParams {
+export interface IDataTablePageEvent extends DataTablePageEvent {
     query: IQuery;
 }
 
-export interface IProps extends DataTableProps {
+export interface IProps extends DataTableProps<any> {
     query: IQuery;
     datatableHeight: number;
-    onPaging(e: IDataTablePageParams): void;
+    onPaging(e: IDataTablePageEvent): void;
 }
 
 export const DataTableControl = observer(({ query, datatableHeight, onPaging, ...props }: IProps) => {
-    const [selected, setSelected] = useState([]);
+    const [selected, setSelected] = useState<any>([]);
     const [first, setFirst] = useState(0);
     const [rows, setRows] = useState(50);
 
@@ -77,7 +75,7 @@ export const DataTableControl = observer(({ query, datatableHeight, onPaging, ..
     ];             
     const copyToClipboard = () => {
         console.log(selected);
-        let data = selected?.map((x) => x['value']).join('\r\n');
+        let data = selected?.map((x: any) => x['value']).join('\r\n');
         console.log(data);
         copy(`${data}`)
     }
@@ -97,8 +95,8 @@ export const DataTableControl = observer(({ query, datatableHeight, onPaging, ..
         });
     }
 
-    const onPage = (event: DataTablePageParams): void => {
-        let evt = event as IDataTablePageParams;
+    const onPage = (event: DataTablePageEvent): void => {
+        let evt = event as IDataTablePageEvent;
         evt.query = query;
         onPaging(evt);
         // setFirst(event.first);
@@ -130,7 +128,7 @@ export const DataTableControl = observer(({ query, datatableHeight, onPaging, ..
                 // selection
                 selection={selected}
                 selectionMode="multiple" cellSelection
-                onSelectionChange={e => {setSelected(e.value); contextMenu.current?.hide(e.originalEvent);}}
+                onSelectionChange={(e: DataTableSelectionChangeEvent<any>) => {setSelected(e.value); contextMenu.current?.hide(e.originalEvent);}}
 
                 // scroll
                 scrollable

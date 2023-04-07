@@ -15,7 +15,7 @@ from datetime import datetime
 
 
 # Добавляем действие для админки
-@Description("Включить выбранные")
+@Description("Включить")
 def action_activate(modeladmin, request, queryset):
     rows_updated = queryset.update(active=True)
     if rows_updated == 1:
@@ -26,7 +26,7 @@ def action_activate(modeladmin, request, queryset):
 
 
 # Добавляем действие для админки
-@Description("Выключить выбранные")
+@Description("Выключить")
 def action_deactivate(modeladmin, request, queryset):
     rows_updated = queryset.update(active=False)
     if rows_updated == 1:
@@ -37,7 +37,7 @@ def action_deactivate(modeladmin, request, queryset):
 
 
 # Добавляем действие для админки
-@Description("Сделать доступными для других ЦПИ")
+@Description("Доступно для ЦПИ")
 def action_cpi_on(modeladmin, request, queryset):
     rows_updated = queryset.update(cpi=True)
     if rows_updated == 1:
@@ -48,7 +48,7 @@ def action_cpi_on(modeladmin, request, queryset):
 
 
 # Добавляем действие для админки
-@Description("Сделать не доступными для других ЦПИ")
+@Description("Не доступно для ЦПИ")
 def action_cpi_off(modeladmin, request, queryset):
     rows_updated = queryset.update(cpi=False)
     if rows_updated == 1:
@@ -58,13 +58,13 @@ def action_cpi_off(modeladmin, request, queryset):
     modeladmin.message_user(request, "Обновлено: %s" % message_bit)
 
 
-@Description("Загрузить запросы от выбранных источников")
+@Description("Загрузить запросы от источников")
 def action_queries_from_source(modeladmin, request, queryset):
     cnt = 0
     # копируем запросы у другого JARVIS
     errors = []
     for src in filter(lambda x: x.source_type == "J", queryset):
-        src_dict = src.to_dict()
+        src_dict = src.selialize()
         src_dict['method'] = 'GET'
         src_dict['prepared_query'] = '/api/v1/query.list'
         jarvis_handler = JarvisHandler.from_dict(initial_dict=src_dict)
@@ -117,7 +117,7 @@ def action_queries_from_source(modeladmin, request, queryset):
         modeladmin.message_user(request, "Получение запроса(ов) от источника(ов) успешно заершено. Новых запросов не выявлено")
 
 
-@Description("Копировать выбранные запросы")
+@Description("Копировать")
 def copy_query(modeladmin, request, queryset):
     # копируем данные
     errors = []
@@ -137,7 +137,7 @@ def copy_query(modeladmin, request, queryset):
         modeladmin.message_user(request, "Скопировано: %s запись(ей)" % cnt)
 
 
-@Description("Копировать выбранные источники")
+@Description("Копировать")
 def copy_source(modeladmin, request, queryset):
     # копируем данные
     errors = []
@@ -157,8 +157,8 @@ def copy_source(modeladmin, request, queryset):
         modeladmin.message_user(request, "Скопировано: %s запись(ей)" % cnt)
 
 
-# Тестирование источников
-@Description("Тест подключения выбранных источников")
+# ping sources action
+@Description("Тест источников")
 def action_test_sources(modeladmin, request, queryset):
     modeladmin.errors = []
     for obj in queryset:
@@ -169,11 +169,10 @@ def action_test_sources(modeladmin, request, queryset):
             modeladmin.message_user(request, "Тест подключения к источнику(ам) завершен успешно")
 
 
-# модель настройки Источников заносим в админку
+# model sources
 @admin.register(models.sources)
 class sourcesAdmin(admin.ModelAdmin):
-    # fields = ['source', 'active', 'source_type', 'protocol', 'host', 'port', 'driver', 'instance', 'database', 'user', 'password']
-    list_display = ['source', 'active', 'source_type', 'protocol', 'host', 'port', 'driver', 'instance', 'database']
+    list_display = ['source', 'active', 'source_type', 'protocol', 'host', 'port', 'instance', 'database', 'file_directory']
     search_fields = ['source']
     list_filter = ['source_type', 'host', 'active']
     ordering = ['-active', 'source']
@@ -183,11 +182,14 @@ class sourcesAdmin(admin.ModelAdmin):
         (None, {
             'fields': ('source', 'active', 'source_type', 'host', 'port'),
         }),
-        ('Базы данных', {
-            'fields': ('driver', 'instance', 'database', 'filename'),
+        ('База данных', {
+            'fields': ('driver', 'instance', 'database', 'isolation_level', 'filename', ),
         }),
-        ('HTTP', {
-            'fields': ('protocol', ),
+        ('Файловая директория', {
+            'fields': ('file_directory', ),
+        }),
+        ('HTTP-источник', {
+            'fields': ('protocol', 'source_headers'),
         }),
         ('Аутентификация', {
             'fields': ('user', 'password'),
@@ -218,11 +220,12 @@ class sourcesAdmin(admin.ModelAdmin):
         return super().response_change(request, obj)
 
     def test_source(self, obj):
-        handler = Handler(handler=obj.source_type, initial_dict=obj.to_dict())
-        result, errors = handler.ping()
-        if not result and errors:
-            self.errors.extend(errors)
-        return result
+        try:
+            handler = Handler(initial_dict=obj.selialize(), handler_name=obj.source_type)
+            return handler.ping()
+        except Exception as error:
+            self.errors.extend(f'{error}')
+        return False
 
 
 # модель настройки типов идентификаторов
@@ -242,15 +245,15 @@ class typesAdmin(admin.ModelAdmin):
             # если тестовое значение не определено, то выдаем ошибку
             if not value:
                 self.message_user(request, "Тестовое значение не опредлено", level=messages.ERROR)
-            else:
-                try:
-                    # сохраняем текущие данные
-                    obj.save()
-                    # ищем регулярку
-                    self.message_user(request, f"Рузультат: {', '.join(match.group() for match in regex.finditer(obj.regexp, value))}")
-                except Exception as error:
-                    self.message_user(request, f"Ошибка при сохранении запроса {error}", level=messages.ERROR)
-                    # modeladmin.message_user(request, "Обновлено: %s" % message_bit)
+                return super().response_change(request, obj)
+
+            obj = models.types(obj)
+            try:
+                obj.save()
+                # ищем регулярку
+                self.message_user(request, f"Рузультат: {', '.join(match.group() for match in regex.finditer(obj.regexp, value))}")
+            except Exception as error:
+                self.message_user(request, f"Ошибка при сохранении запроса {error}", level=messages.ERROR)
         return super().response_change(request, obj)
 
 
@@ -266,11 +269,14 @@ class queriesAdmin(admin.ModelAdmin):
     list_per_page = 100
     fieldsets = (
         (None, {
-            'fields': ('typename', 'active', 'name', 'cpi', 'position', 'source', 'timeout', 'group', 'datatype', 'query',),
+            'fields': ('typename', 'active', 'name', 'cpi', 'position', 'source', 'timeout', 'group', 'datatype', 'query'),
         }),
         ('HTTP', {
-            'fields': ('method', 'headers', 'request_data', 'code_type', 'code', ),
+            'fields': ('method', 'headers', 'request_data', 'code_type', 'code'),
         }),
+        ('Файл', {
+            'fields': ('encoding', 'separator', 'columns_exists')
+        })
     )
 
     # так либо объявить такие данные в модели
@@ -281,15 +287,17 @@ class queriesAdmin(admin.ModelAdmin):
     def response_change(self, request, obj):
         if "_continue" in request.POST and request.POST.get("_continue", None) == "Тест запроса":
             value = request.POST.get("_test_value", None)
-            # если тестовое значение не определено, то выдаем ошибку
+            # if test vaslue is absent, then return error message
             if not value:
                 self.message_user(request, "Тестовое значение не опредлено", level=messages.ERROR)
-            else:
-                try:
-                    obj.save()
-                    return redirect(f"/search/{obj.typename}/{obj.name}/?value={value}&nocache=1", permanent=True)
-                except Exception as error:
-                    self.message_user(request, f"Ошибка при сохранении запроса {error}", level=messages.ERROR)
+                return super().response_change(request, obj)
+
+            obj = models.queries(obj)
+            try:
+                obj.save()
+                return redirect(f"/search/{obj.typename}/{obj.name}/?value={value}&nocache=1", permanent=True)
+            except Exception as error:
+                self.message_user(request, f"Ошибка при сохранении запроса {error}", level=messages.ERROR)
         return super().response_change(request, obj)
 
 #     def has_add_permission(self, request, obj=None):

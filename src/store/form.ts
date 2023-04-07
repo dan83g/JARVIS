@@ -2,8 +2,8 @@ import { makeAutoObservable } from 'mobx'
 import { RootStore } from './root';
 import { Search, SearchTypes, IQueriesParams } from '../data/service';
 import { toast } from "react-toastify";
-import { b64DecodeUnicode } from '../data/code';
-import { MenuItem, MenuItemCommandParams } from 'primereact/menuitem/menuitem';
+import { b64DecodeUnicode } from '../lib/code';
+import { MenuItem, MenuItemCommandEvent } from 'primereact/menuitem/menuitem';
 
 
 // SearchInfo
@@ -25,7 +25,7 @@ export class SearchInfo implements ISearchInfo {
             let data = await Search.valueInfo(this.searchText);
             return data ? (data as ISearchInfo) : (this as ISearchInfo);
         } catch(error) {
-            throw(`${error}`)
+            throw new Error(`${error}`)
         }
     }
 }
@@ -35,7 +35,7 @@ type IMenuItem = Pick<MenuItem, 'label' | 'icon'  | 'command'>
 export class MenuItemEx implements IMenuItem {
     label?: string;
     icon?: any;
-    command?(e: MenuItemCommandParams): void;    
+    command?(event: MenuItemCommandEvent): void;  
 
     constructor(item: IMenuItem) {
         this.label = item.label;
@@ -73,17 +73,19 @@ export class FormStore {
         {name: "Период...", id: "custom", getRangeStart: (end: Date) => {return end}},
     ]    
 
-    constructor(root: RootStore) {
+    constructor(root: RootStore, initialState?: any) {
         this.root = root
         makeAutoObservable(this);
 
         this.loadSearchTypes();
 
-        this.loadQueryParams();
+        // this.loadQueryParams();
+        this.loadInitialState(initialState);
 
-        if (this.searchText) {
-            root.tabViewStore.loadQueries(undefined, `${ window.location.pathname}${ window.location.search}`);
-        }
+        // todo: if query exists in get parameters
+        // if (this.searchText) {
+        //     root.tabViewStore.loadQueries(undefined, `${ window.location.pathname}${ window.location.search}`);
+        // }
     }
 
     // loading data
@@ -107,7 +109,20 @@ export class FormStore {
         } catch(error) {
             toast.error(`${error}`);                
         }
-    } 
+    }
+    loadInitialState = (initialState: any) => {
+        let search = window.location.search;
+        const urlParams = new URLSearchParams(search);
+        if (urlParams.has('value')){
+            let value = urlParams.get('value');
+            if (value && urlParams.has('base64') && urlParams.get('base64') === '1')                
+                value = b64DecodeUnicode(value);
+
+            if (value) {
+                this.setSearchText(`${value}`)
+            }
+        }
+    }    
 
     setAdvancedVisibility = (value: boolean) => {
         this.advancedVisibility = value
@@ -170,9 +185,7 @@ export class FormStore {
                 date_from: this.dateRange ? this.dateRange[0] : undefined,
                 date_to: this.dateRange ? this.dateRange[1] : undefined,
             }
-            // .toISOString()            
             this.root.tabViewStore.loadQueries(params);
-            toast.info(`${this.searchText} ${this.typeValue} ${this.dateRange}`, {});
         }        
     }
 

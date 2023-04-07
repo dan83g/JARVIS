@@ -1,6 +1,6 @@
 import { makeAutoObservable } from 'mobx'
 import { RootStore } from './root';
-import { User, Search, Queries, IQueriesParams, IQueryParams } from '../data/service';
+import { Search, Queries, IQueriesParams, IQueryParams } from '../data/service';
 import { toast } from 'react-toastify';
 import { LogOption, LogType } from '../views/controls/listbox/listbox';
 
@@ -17,6 +17,9 @@ export const DEFAULT_PAGING_LIMIT = 100;
 export const DEFAULT_PAGING_OFFSET = 0;
 export const DEFAULT_DATATABLE_HEIGHT = 200;
 
+export interface IUrl {
+    url: string;
+}
 
 export interface IQuery {
     id: string;
@@ -27,6 +30,7 @@ export interface IQuery {
     loading?: boolean;
     columns?: string[];
     data?: Object[];
+    url?: string;
     refreshInterval: number;
     timerId?: number;
     value?: string;
@@ -47,7 +51,8 @@ export class TabViewStore {
 
     // tab
     setActiveTab = (index: number) => {
-        if (index >=0 && this.queries.length > index){
+        // if (index >=0 && this.queries.length > index){
+        if (index >=0 && this.successQueries.length > index){
             this.activeIndex = index;
             (document.querySelector(`.tabview-result a[itemID="${index}"]`) as HTMLLinkElement)?.focus();
         }
@@ -56,11 +61,19 @@ export class TabViewStore {
         this.queries.splice(index, 1);
         this.setActiveTab(index-1);
     }    
-    onTabKeyDown = (index: number, code: string) => {        
+    onTabKeyDown = (index: number, code: string) => {
+        let circleCalcIndex = (index: number, maxIndex: number): number => {
+            if (index > maxIndex) return 0
+            if (index < 0) return maxIndex
+            return index 
+        }
         const variants: Record<string, number> = {
-            'ArrowLeft': index - 1,
-            'ArrowRight': index + 1,
-            'Enter': index
+            'ArrowLeft': circleCalcIndex(index - 1, this.successQueries.length - 1),
+            'ArrowRight': circleCalcIndex(index + 1, this.successQueries.length - 1),
+            'Enter': circleCalcIndex(index + 1, this.successQueries.length - 1),
+            'Space': circleCalcIndex(index + 1, this.successQueries.length - 1),
+            'Home': 0,
+            'End': this.successQueries.length - 1
         }
         this.setActiveTab(variants[code])
     }
@@ -97,7 +110,6 @@ export class TabViewStore {
         })
     }
     setQueryLog = (queryId: string, log: LogOption, loading: boolean): void => {
-        // let params: Partial<IQuery> = {log: log, loading: loading, data: []};
         let queries: IQuery[] = this.assignQuery(queryId, {log: log, loading: loading, data: []} as Partial<IQuery>);
         this.setQueries(queries);
     }     
@@ -107,7 +119,9 @@ export class TabViewStore {
             {
                 loading: false,
                 data: data,
-                columns: data ? Object.keys(data[0]) : ['undefined'],
+                columns: data && Array.isArray(data) ? Object.keys(data[0]) : ['undefined'],
+                iframe: data && data.url ? true : false,
+                url: data && data.url ? data.url : '',
                 limit: limit,
                 offset: offset,
                 log: undefined,
@@ -174,8 +188,12 @@ export class TabViewStore {
                 this.setQueryLoading(query.id, true);
             }
             try {
-                let data = await Queries.getData(queryId, {value: value, limit: limit, offset: offset} as IQueryParams);
+                let data = await Queries.getData({id: queryId, value: value, limit: limit, offset: offset} as IQueryParams);
                 if (data && Array.isArray(data) && data.length > 0) {
+                    // if data is present (datatable)
+                    this.setQueryData(queryId, data, limit, offset);
+                } else if (data && data.url){
+                    // if url is present (iframe)
                     this.setQueryData(queryId, data, limit, offset);
                 } else {
                     this.setQueryLog(queryId, this.setLogOption(query.title, LogType.Nodata, `Нет данных`), false);                    
@@ -204,9 +222,9 @@ export class TabViewStore {
             })
         }
     }       
-    loadQueries = async(params?: IQueriesParams, url?: string) => {
+    loadQueries = async(params?: IQueriesParams) => {
         try {
-            let data: any = await Search.getQueries(params, url);
+            let data: any = await Search.getQueries(params);
             let queries: IQuery[] | undefined = this.parseQueries(data);
             this.setQueries(queries);
             if (this.queries)

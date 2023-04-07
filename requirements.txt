@@ -1,16 +1,16 @@
 mssql-django
-django-jet
+pytesseract
+django-4-jet
 pydantic
 kafka-python
 sql_metadata
 pandasql
 celery
-Django==2.2.24
+django
 django-redis
 django-redis-sessions
 gunicorn
 Jinja2
-jsonpath
 jsonpath-ng
 kafka-python
 ldap3
@@ -22,3 +22,7 @@ redis
 redis-session
 requests
 sentry-sdk
+orjson
+django-ninja
+openpyxl
+sqlalchemy

@@ -1,19 +1,9 @@
 {
     // npx webpack --config webpack.config.js
     "version": "0.2.0",
-    "configurations": [
+    "configurations": [ 
         {
-            "type": "chrome",
-            "request": "launch",
-            "name": "Launch Chrome",
-            "url": "http://localhost:8000",
-            // "webRoot": "${workspaceFolder}",
-            "webRoot": "${workspaceFolder}/static/code/**",
-            "breakOnLoad": true,
-            "sourceMaps": true,
-        },      
-        {
-            "name": "Python: Django",
+            "name": "Django",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}\\django_project\\manage.py",
@@ -26,36 +16,62 @@
             "django": false
         },
         {
-            "type": "vscode-edge-devtools.debug",
-            "request": "launch",
-            "name": "Launch Edge DevTools",
-            "url": "http://localhost:3000",
-            "webRoot": "${workspaceFolder}"
-        },
-        {
-            "type": "pwa-chrome",
-            "request": "launch",
             "name": "Chrome",
-            "url": "http://localhost:3000",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://1.0.0.8:8080",
             "webRoot": "${workspaceFolder}"
         },
         {
+            "name": "Edge",
+            "type": "vscode-edge-devtools.debug",
+            "request": "launch",          
+            "url": "http://1.0.0.8:8080",
+            "webRoot": "${workspaceFolder}"
+        },        
+        {
+            "name": "Edge Debug",
+            "type": "msedge",
+            "request": "launch",            
+            "runtimeArgs": [
+                "--remote-debugging-port=9222",
+                "--headless"
+            ],
+            "presentation": {
+                "hidden": true
+            },              
+            "url": "http://1.0.0.8:8080",
+            "webRoot": "${workspaceFolder}"
+        },                
+        // {
+        //     "type": "pwa-chrome",
+        //     "request": "launch",
+        //     "name": "Chrome",
+        //     "url": "http://localhost:3000",
+        //     "webRoot": "${workspaceFolder}"
+        // },
+        {
+            "name": "React",
             "type": "node",
-            "request": "launch",
-            "name": "yarn start",
+            "request": "launch",        
             "runtimeExecutable": "yarn",
             "cwd": "${workspaceFolder}",
             "runtimeArgs": ["start"],
-            "port": 3000
+            // "port": 3000
         }        
 
     ],
     "compounds": [
         {
-          "name": "Server/Client",
+          "name": "Django + React",
         //   "configurations": ["Python: Django", "Launch Chrome", "Attach to Chrome"],
-          "configurations": ["Python: Django", "Launch Chrome"],
+          "configurations": ["Django", "React"],
         //   "preLaunchTask": "${defaultBuildTask}"
-        }
+        },
+        {
+            "name": "Edge + Debug",
+            "configurations": ["Edge", "Edge Debug"],
+          //   "preLaunchTask": "${defaultBuildTask}"
+          }        
       ]    
 }

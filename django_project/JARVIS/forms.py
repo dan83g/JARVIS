@@ -1,20 +1,8 @@
-from pydantic import (
-    BaseModel, validator
-)
+from pydantic import BaseModel, validator
+from search.forms import QueryList
+from JARVIS.enums import SERVER_VERSION
 
 
-class AuthModel(BaseModel):
-    username: str
-    password: str
-
-    @validator('username')
-    def name_not_empty(cls, v):
-        if v in ('', None):
-            raise ValueError('Имя пользователя отсутствует')
-        return v
-
-    @validator('password')
-    def pass_not_empty(cls, v):
-        if v in ('', None):
-            raise ValueError('Пароль отсутствует')
-        return v
+class InitialState(BaseModel):
+    queries_data: QueryList
+    server_version: str = SERVER_VERSION

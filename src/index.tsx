@@ -5,6 +5,7 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { RootStore } from './store/root';
+import { search } from './lib/navigate';
 
 // mobx store configuration
 let store: RootStore
@@ -14,8 +15,8 @@ const StoreContext = React.createContext<RootStore | undefined>(undefined);
 
 // create the provider component
 function RootStoreProvider({ children }: { children: React.ReactNode }) {
-    //only create the store once ( store is a singleton)
-    store = store ?? new RootStore()
+    //only create the store once (store is a singleton)
+    store = store ?? new RootStore((window as any).initialState)
     return <StoreContext.Provider value={store}>{children}</StoreContext.Provider>
 }
 
@@ -28,7 +29,10 @@ export function useRootStore() {
     return context
 }
 
-const root = createRoot(document.getElementById('root'));
+// append navigate function for secondary search    
+(window as any).search = search;
+
+const root = createRoot(document.getElementById('root')!);
 root.render(
     <React.StrictMode>
         <RootStoreProvider>

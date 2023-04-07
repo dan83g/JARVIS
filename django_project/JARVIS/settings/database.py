@@ -1,6 +1,5 @@
 from JARVIS import enums
 
-
 DATABASE_CONNECTION_POOLING = False
 DATABASES = {
     'default': {

@@ -1,8 +1,7 @@
 from django.forms import Form
-from django.conf import settings
 from pydantic import BaseModel, ValidationError
 from abc import abstractmethod
-import functools
+from functools import wraps
 import logging
 import typing
 from .response import Response
@@ -25,7 +24,7 @@ class Description:
     def __call__(self, function):
         function.short_description = self.description
 
-        @functools.wraps(function)
+        @wraps(function)
         def wrapper(*args, **kwargs):
             return function(*args, **kwargs)
         return wrapper
@@ -47,7 +46,7 @@ class Except:
         self.logger = logger if logger else logging.getLogger(__name__)
 
     def __call__(self, function):
-        @functools.wraps(function)
+        @wraps(function)
         def wrapper(*args, **kwargs):
             try:
                 return function(*args, **kwargs)
@@ -81,10 +80,10 @@ class ViewRmVaryHeader(BaseDecoratorView, Response):
         pass
 
     def __call__(self, view):
-        @functools.wraps(view)
+        @wraps(view)
         def wrapper(request, *args, **kwargs):
             response = view(request, *args, **kwargs)
-            response.remove_vary = True
+            # response.remove_vary = True
             return response
         return wrapper
 
@@ -113,7 +112,7 @@ class ViewMethod(BaseDecoratorView, Response):
         self.status_code = status_code
 
     def __call__(self, view):
-        @functools.wraps(view)
+        @wraps(view)
         def wrapper(request, *args, **kwargs):
             if request.method not in self.method:
                 return self.json_response(message=f'{self.message}: {request.method}', status=self.status, status_code=self.status_code)
@@ -144,10 +143,8 @@ class ViewAuth(BaseDecoratorView, Response):
         self.status_code = status_code
 
     def __call__(self, view):
-        @functools.wraps(view)
+        @wraps(view)
         def wrapper(request, *args, **kwargs):
-            if settings.DEBUG:
-                return view(request, *args, **kwargs)
             if not request.user.is_authenticated:
                 return self.json_response(message=self.message, status=self.status, status_code=self.status_code)
             return view(request, *args, **kwargs)
@@ -176,7 +173,7 @@ class ViewExcept(BaseDecoratorView, Response):
         self.logger = logger if logger else logging.getLogger(__name__)
 
     def __call__(self, view):
-        @functools.wraps(view)
+        @wraps(view)
         def wrapper(request, *args, **kwargs):
             try:
                 return view(request, *args, **kwargs)
@@ -212,7 +209,7 @@ class ViewForm(BaseDecoratorView, Response):
         self.status_code = status_code
 
     def __call__(self, view):
-        @functools.wraps(view)
+        @wraps(view)
         def wrapper(request, *args, **kwargs):
             # if self.is_json:
             #     form = self.form(json.loads(request.body))
@@ -250,7 +247,7 @@ class ViewInputValidation(BaseDecoratorView, Response):
         self.status_code = status_code
 
     def __call__(self, view):
-        @functools.wraps(view)
+        @wraps(view)
         def wrapper(request, *args, **kwargs):
             pydantic_model = None
             try:

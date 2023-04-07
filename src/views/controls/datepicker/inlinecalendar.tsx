@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Calendar, CalendarProps } from 'primereact/calendar';
 import { Dropdown } from 'primereact/dropdown';
 import { addLocale } from 'primereact/api';
@@ -18,7 +18,7 @@ export const CalendarInlineControl = (props: CalendarProps) => {
 
     let maxDate = new Date();
     maxDate.setMonth(nextMonth);
-    maxDate.setFullYear(nextYear);
+    maxDate.setFullYear(nextYear);    
 
     addLocale('ru', {
         firstDayOfWeek: 1,
@@ -39,12 +39,18 @@ export const CalendarInlineControl = (props: CalendarProps) => {
         return <Dropdown value={e.value} options={e.options} onChange={(event) => e.onChange(event.originalEvent, event.value)} className="p-ml-2" style={{ lineHeight: 1 }} />;
     }
 
+    // return <Calendar value={date14} inline showWeek />
+
     return <Calendar
-        value={props.value} onChange={props.onChange}
-        style={props.style}
-        locale='ru' yearRange="2010:2040" mask="99.99.9999" dateFormat="dd.mm.yy"
+        value={props.value}
+        onChange={props.onChange}
+        style={props.style}        
+        locale='ru'
+        dateFormat="dd.mm.yy"
         inline selectionMode='range'
-        monthNavigator yearNavigator
+        // mask="99.99.9999"
+        // monthNavigator
+        // yearNavigator
         monthNavigatorTemplate={monthNavigatorTemplate} yearNavigatorTemplate={yearNavigatorTemplate}
     />
 }

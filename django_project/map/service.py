@@ -11,22 +11,22 @@ from JARVIS.enums import REDIS_CACHE_TTL
 
 class CoordinatesCache:
     @staticmethod
-    def get(user: User, hash: str) -> List[Dict]:
+    def get(user: User, id: str) -> List[Dict]:
         """get coordinates ffrom cache
 
-        :param hash: md5 hash as key
-        :type hash: str
+        :param id: md5 hash as key
+        :type id: str
         :raises CacheGetError: if cache failure
         :raises CoordinatesDoesNotExistsInCache: if coordinates ware not found in cache
         :return: Coordinates in GeoJson format
         :rtype: List[Dict]
         """
         try:
-            coordinates = cache.get(f"user:{user.id}:{hash}")
+            coordinates = cache.get(f"user:{user.id}:{id}")
         except InvalidCacheBackendError as error:
-            raise CacheGetError(hash) from error
+            raise CacheGetError(id) from error
         if not coordinates:
-            raise CoordinatesDoesNotExistsInCache()
+            raise CoordinatesDoesNotExistsInCache(id=id)
         return coordinates
 
     @staticmethod
@@ -39,19 +39,19 @@ class CoordinatesCache:
         :return: md5 hash as key
         :rtype: str
         """
-        hash = md5hash(coordinates)
+        id = md5hash(coordinates)
         try:
-            cache.set(f"user:{user.id}:{hash}", coordinates, timeout=REDIS_CACHE_TTL)
+            cache.set(f"user:{user.id}:{id}", coordinates, timeout=REDIS_CACHE_TTL)
         except InvalidCacheBackendError as error:
             raise CacheSetError() from error
-        return hash
+        return id
 
 
 class Coordinates:
     def __init__(self, user: User) -> None:
         self._user = user
 
-    def _get_coordinate_regexps(self) -> List[Dict]:
+    def _get_coordinate_regexps(self) -> list[dict]:
         """get regular expressions from database for parsing coordinates
 
         :raises CoordinatesTypesDoesNotExists: if Coordinate types was not found in db
@@ -107,14 +107,14 @@ class Coordinates:
             )
         return result_list
 
-    def get_geojson_coordinates(self, text_with_coordinates: str, hash: str) -> List[Dict]:
+    def get_geojson_coordinates(self, text_with_coordinates: str, id: str) -> List[Dict]:
         """getting coordinates from text and use them for prepearing GeoJson
 
         :return: List of coordinates in GeoJson format
         :rtype: List[Dict]
         """
-        if hash:
-            return CoordinatesCache.get(user=self._user, hash=hash)
+        if id:
+            return CoordinatesCache.get(user=self._user, id=id)
         coodinates = []
         for regexp in self._get_coordinate_regexps():
             coodinates.extend(

@@ -27,7 +27,7 @@ export const FormControl = observer(() => {
 
     useEffect(() => {
         tabViewStore.setDatatableHeight();
-    }, [formStore, formStore.advancedVisibility]);    
+    }, [formStore, formStore.advancedVisibility, tabViewStore]);    
 
     const toogleAdvancedSettings = () => {
         formStore.setAdvancedVisibility(formStore.advancedVisibility ? false : true);
@@ -72,15 +72,21 @@ export const FormControl = observer(() => {
                         idPrefix="date-filter"
                         onChange={(e:any) => {
                             if (e.value === "custom" || (formStore.dateFilterValue === "custom" && e.value === null)) {
-                                overlayPanel.current?.show(e, document.getElementById('date-filter-custom') as HTMLElement);
-                                formStore.setDateFilterValue("custom");
+                                let dateFilterElement = document.getElementById('date-filter-custom') as HTMLElement;
+                                if (dateFilterElement) {                                
+                                    overlayPanel.current?.show(e, dateFilterElement);
+                                    formStore.setDateFilterValue("custom");
+                                };
                             } else {
                                 formStore.setDateFilterValue(e.value);
                             }
                         }}
                     />
                     <OverlayPanel ref={overlayPanel} id="datetime-overlay-panel" showCloseIcon style={{ textAlign: "right" }}>
-                        <CalendarInlineControl value={formStore.dateRange} onChange={(e: any) => formStore.setDateRange(e.value)}/>
+                        <CalendarInlineControl 
+                            value={formStore.dateRange} 
+                            onChange={(e: any) => formStore.setDateRange(e.value)}
+                        />
                         <br/>
                         <ButtonControl
                             label='OK' icon="pi pi-check"
@@ -93,10 +99,10 @@ export const FormControl = observer(() => {
                 <div className="field col-6 mt-1"/>
                 <div className="field col-4 mt-1">                    
                     <ButtonControl type="button" label="Очистить" icon="pi pi-times" className="p-button-text" style={{height: "1.75rem", width: "120px"}} onClick={() => formStore.onClearClick()} visible={formStore.advancedVisibility}/>
-                    <ButtonControl label="Найти" icon="pi pi-search" className="p-button-outlined" style={{height: "1.75rem", width: "95px"}} visible={formStore.advancedVisibility}/>
+                    <ButtonControl label="Найти" icon="pi pi-search" className="p-button-outlined" style={{height: "1.75rem", width: "95px"}} visible={formStore.advancedVisibility} />
                 </div>
             </div>
-            <Button type="submit" label="Поиск" tooltip='Поиск' icon="pi pi-check" style={{visibility:"hidden"}}/>
+            <Button type="submit" label="Поиск" tooltip='Поиск' icon="pi pi-check" style={{display:"none"}} />
         </form>
     )
 });

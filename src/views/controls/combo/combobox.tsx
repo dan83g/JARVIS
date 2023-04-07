@@ -8,6 +8,6 @@ interface Props extends DropdownProps {
 
 export const ComboBoxControl = ({ visible = true, ...props }: Props) => {
     return (
-        visible == false ? null : <Dropdown  filter filterBy={`${props.optionLabel}`} {...props}/>
+        visible === false ? null : <Dropdown  filter filterBy={`${props.optionLabel}`} {...props}/>
     );
 }

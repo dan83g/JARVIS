@@ -19,17 +19,17 @@ class BaseSearchModel(BaseModel):
         try:
             return base64.b64decode(v).decode('UTF-16')
         except Exception:
-            ValueError("Ошибка декодирования base64")
+            raise ValueError("Ошибка декодирования base64")
 
 
 class SearchModel(BaseSearchModel):
-    date_from: datetime = None
-    date_to: datetime = None
+    date_from: datetime | None = None
+    date_to: datetime | None = None
 
     @validator('date_from', 'date_to', pre=True)
     def try_dates(cls, v, values, **kwargs):
         if not v and values.get('date_from'):
-            return date.now() + relativedelta(days=1)
+            return date.today() + relativedelta(days=1)
         if v and not values.get('date_from'):
             try:
                 temp_date = parser.parse(v)

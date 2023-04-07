@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 def index(request):
 
     # getting tile servers data
-    tiles = models.tile_server.objects.filter(active=True).first() .order_by('priority')
+    tiles = models.tile_server.objects.filter(active=True).order_by('priority').first()
     if not tiles:
         return Response.json_response(message='В БД отсутствуют данные о тайловых серверах')
 
@@ -42,10 +42,10 @@ def index(request):
     if request.pydantic_model.coordinates:
         coordinates = Coordinates(user=request.user).get_geojson_coordinates(
             text_with_coordinates=request.pydantic_model.coordinates,
-            hash=None
+            id=None
         )
-        hash = CoordinatesCache.set(request.user, coordinates)
-        context['coordinates_hash'] = hash
+        id = CoordinatesCache.set(request.user, coordinates)
+        context['id'] = id
     return render(request, template_name='map.html', context=context)
 
 
@@ -61,7 +61,6 @@ def geoname_search(request):
         return Response.json_response(message='В БД нет источника с именем "GEONAMES". Обратитесь к администратору')
 
     handler = Handler(
-        handler=HandlerType.M,
         initial_dict=dict(
             driver=source.driver,
             host=source.host,
@@ -70,7 +69,8 @@ def geoname_search(request):
             database=source.database,
             user=source.user,
             password=source.password,
-            prepared_query=f"geonames.sp_search_geonames {request.pydantic_model.geoname}"))
+            prepared_query=f"geonames.sp_search_geonames {request.pydantic_model.geoname}"),
+        handler=HandlerType.M)
     returned_data, retrurned_errors = handler.execute()
 
     if retrurned_errors:
@@ -85,6 +85,6 @@ def geoname_search(request):
 def coordinates_search(request):
     coordinates = Coordinates(user=request.user).get_geojson_coordinates(
         text_with_coordinates=request.pydantic_model.coordinates,
-        hash=request.pydantic_model.coordinates_hash
+        id=request.pydantic_model.id
     )
     return Response.json_data_response(data=coordinates)

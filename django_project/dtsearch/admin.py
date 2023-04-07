@@ -6,7 +6,7 @@ from lib.decorators import Description
 
 
 # Добавляем действие для админки
-@Description("Включить выбранные")
+@Description("Включить")
 def action_activate(modeladmin, request, queryset):
     rows_updated = queryset.update(active=True)
     if rows_updated == 1:
@@ -17,7 +17,7 @@ def action_activate(modeladmin, request, queryset):
 
 
 # Добавляем действие
-@Description("Выключить выбранные")
+@Description("Выключить")
 def action_deactivate(modeladmin, request, queryset):
     rows_updated = queryset.update(active=False)
     if rows_updated == 1:

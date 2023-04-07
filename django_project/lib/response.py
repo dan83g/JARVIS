@@ -1,4 +1,3 @@
-from typing import Union
 from django.http import JsonResponse
 from JARVIS.enums import HTTP_ERROR_CODE
 
@@ -32,7 +31,7 @@ class Response:
         )
 
     @staticmethod
-    def json_data_response(data: Union[list, dict] = None, message: str = 'OK', status: str = 'success', status_code: int = 200) -> JsonResponse:
+    def json_data_response(data: list[dict] | dict, message: str = 'OK', status: str = 'success', status_code: int = 200) -> JsonResponse:
         """send data in webix format
 
         :param data: list with data, defaults to []

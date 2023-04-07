@@ -7,6 +7,6 @@ interface Props extends ButtonProps {
 
 export const ButtonControl = ({ visible = true, ...props }: Props) => {
     return (
-        visible == false ? null : <Button {...props}/>
+        visible === false ? null : <Button {...props}/>
     );
 }

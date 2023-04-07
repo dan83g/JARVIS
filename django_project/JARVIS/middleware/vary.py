@@ -5,9 +5,10 @@ from django.utils.deprecation import MiddlewareMixin
 
 
 class RemoveVaryHeader(MiddlewareMixin):
-    """ remove VaryHeader if remove_vary-decorator is present """
+    """remove VaryHeader if remove_vary-decorator is present
+    """
 
     def process_response(self, request, response):
-        if hasattr(response, "remove_vary") and "vary" in response._headers:
-            del response._headers['vary']
+        if hasattr(response, "remove_vary") and "vary" in response.headers:
+            del response.headers['vary']
         return response

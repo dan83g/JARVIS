@@ -10,7 +10,7 @@ from typing import Union, Any
 
 
 class OCR:
-    def __init__(self, user: User, files: any) -> None:
+    def __init__(self, user: User, files: Any) -> None:
         self._user = user
         self._files = files
 
@@ -36,7 +36,7 @@ class OCR:
             except Exception as error:
                 raise UploadFileUnknownType() from error
 
-    def _execute_tesseract(self, image: Any) -> Union[str, None]:
+    def _execute_tesseract(self, image: Any) -> str:
         """execute tesseract
 
         :param image: PIL image
@@ -49,7 +49,7 @@ class OCR:
         except Exception as error:
             raise TesseractException from error
 
-    def _prepare_recognized_text(self, text: str = None) -> str:
+    def _prepare_recognized_text(self, text: str) -> str:
         """prepare result text
 
         :param text: text

@@ -1,4 +1,4 @@
-import { Requests, SuccessdHandler, ErrorHandler, fullUrl } from "./http";
+import { Requests } from "./http";
 
 export interface IQueriesParams {
     value: string;
@@ -8,6 +8,7 @@ export interface IQueriesParams {
 }
 
 export interface IQueryParams {
+    id: string;
     value: string;
     limit: number;
     offset: number;
@@ -16,13 +17,13 @@ export interface IQueryParams {
 
 export const SearchTypes = {    
     getList(): any {
-        return Requests.requestWithParams('GET', '/search/type.list');
+        return Requests.requestWithParams('GET', '/api/v1/type.list');
     }
 } as const;
 
 export const User = {    
-    loadSettings(): Promise<any> {
-        return Requests.requestWithParams('GET', '/api/v1/user');
+    getInfo(): Promise<any> {
+        return Requests.requestWithParams('GET', '/user/info');
     },
     saveSettings(data: any): Promise<any> {
         return Requests.requestWithJson('POST', '/api/v1/user');
@@ -30,16 +31,14 @@ export const User = {
 } as const;
 
 export const Queries = {
-    getData(id: string, params: IQueryParams): Promise<any> {
-        return Requests.requestWithParams('GET', `/search/query/${id}`, params);
+    getData(params: IQueryParams): Promise<any> {
+        return Requests.requestWithParams('GET', `/search/query`, params);
     }
 } as const;
 
 export const Search = {
-    getQueries(params?: IQueriesParams, url: string = '/search/'): Promise<any> {
-        if (params)
-            url = `${url}${params.typename ? params.typename + '/': ''}`
-        return Requests.requestWithParams('POST', url, params);
+    getQueries(params?: IQueriesParams): Promise<any> {           
+        return Requests.requestWithParams('POST', '/search/', params);
     },
     valueInfo(value?: string): any {
         return Requests.requestWithParams('GET', '/search/value.info', {value: value});
@@ -75,7 +74,7 @@ export const Search = {
 //     search_coordinates_by_text(text_with_coordinates: string, success_callback?:SuccessdHandler, error_callback?: ErrorHandler): void {
 //         Requests.post_json('/map/coordinates.search', {coordinates: text_with_coordinates}, success_callback, error_callback);
 //     },
-//     search_coordinates_by_hash(coordinates_hash: string, success_callback?:SuccessdHandler, error_callback?: ErrorHandler): void {
-//         Requests.post_json('/map/coordinates.search', {coordinates_hash: coordinates_hash}, success_callback, error_callback);
+//     search_coordinates_by_id(id: string, success_callback?:SuccessdHandler, error_callback?: ErrorHandler): void {
+//         Requests.post_json('/map/coordinates.search', {id: id}, success_callback, error_callback);
 //     },
 // } as const;

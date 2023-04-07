@@ -8,7 +8,7 @@ export const ThemeButton = () => {
     const changeTheme = (theme: string) => {
         let themeLink = document.getElementById('app-theme') as HTMLLinkElement;
         if (themeLink) {
-          themeLink.href = `themes/${theme}/theme.css`;
+          themeLink.href = `static/themes/${theme}/theme.css`;
         }
     }
 

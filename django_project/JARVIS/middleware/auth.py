@@ -4,6 +4,7 @@ from JARVIS.enums import (
 from django.contrib.auth.middleware import RemoteUserMiddleware
 from django.contrib.auth.backends import RemoteUserBackend
 from django.contrib.auth.hashers import make_password
+from django.contrib.auth import load_backend
 from django.contrib.auth.models import Group, User
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.deprecation import MiddlewareMixin
@@ -72,6 +73,17 @@ class HttpRemoteUserMiddleware(RemoteUserMiddleware):
         )
         return user
 
+    def _remove_invalid_user(self, request):
+        """Removes the current authenticated user in the request
+        """
+        try:
+            stored_backend = load_backend(request.session.get(auth.BACKEND_SESSION_KEY, ''))
+        except ImportError:
+            auth.logout(request)
+        else:
+            if isinstance(stored_backend, RemoteUserBackend):
+                auth.logout(request)
+
     def process_request(self, request):
         if not hasattr(request, 'user'):
             raise ImproperlyConfigured("Add django.contrib.auth.middleware.AuthenticationMiddleware")
@@ -103,7 +115,7 @@ class HttpRemoteUserMiddleware(RemoteUserMiddleware):
         # update LDAP
         oLdap = ldap.objects.filter(active=True).first()
         if oLdap:
-            oLdap.update_users(user)
+            oLdap.update_users(User(user))
 
         # # external users
         # # дополнительные поля

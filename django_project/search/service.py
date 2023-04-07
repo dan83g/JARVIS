@@ -1,30 +1,34 @@
-from dataclasses import dataclass
+import json
+import re
+import redis
+from dataclasses import asdict, fields, dataclass
+from pydantic import validator
 from datetime import datetime
 from django.db.models import Q
 from django.core.cache import cache, InvalidCacheBackendError
 from django.contrib.auth.models import User
 from django.db.models.query import QuerySet
-import json
-import re
-import redis
 from .models import types, queries
 from .exceptions import (
-    RedisError, RedisGetError, RedisSetError, RedisNoDataError,
-    QueriesDoesNotExist, CacheSetError, SearcherObjectNotCreated, DBTypesDoNotExist)
-from .searcher import searchers
+    RedisError, RedisGetError, RedisSetError, RedisNoDataError, SearchIdNotDefined,
+    QueriesDoesNotExist, CacheSetError, DBTypesDoNotExist,
+    SearcherObjectNotCreated, SearcherObjectExecutionError, SearchValueNotDefined)
+from .searcher import Searchers, Searcher
 from .forms import QueryList, Query
 from lib.log import Log, LoggingHandlers
 from lib.encoders import JsonEncoder
+from lib.ninja_api.schemas import DataResponseDict
 from JARVIS.enums import (
-    REDIS_HOST, REDIS_PORT, REDIS_DB_CACHE, REDIS_CACHE_TTL)
-from typing import Dict, List, Any, Union
+    REDIS_HOST, REDIS_PORT, REDIS_DB_CACHE, REDIS_CACHE_TTL,
+    QUERY_PAGINATION_LIMIT, QUERY_PAGINATION_OFFSET)
+from typing import Any
 import logging
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class AutoComplete:
-    value: str = None
+    value: str
     max_count: int = 10
     max_text_length: int = 50
 
@@ -32,7 +36,7 @@ class AutoComplete:
         self._redis = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB_CACHE)
         self._auto_complete_key_prefix = "auto-complete:"
 
-    def _add_prefixes_to_redis(self, value: str) -> Union[bool, None]:
+    def _add_prefixes_to_redis(self, value: str) -> bool:
         """add prefixes to redis
 
         :param value: search text
@@ -49,7 +53,7 @@ class AutoComplete:
         except RedisError as error:
             raise RedisSetError from error
 
-    def _get_text_list_from_redis(self, value: str) -> List[str]:
+    def _get_text_list_from_redis(self, value: str) -> list[str]:
         """get autocomlete list from redis
 
         :raises RedisGetData: if text not retrieved from redis
@@ -85,9 +89,11 @@ class AutoComplete:
         :return: True if successfully added, else False
         :rtype: bool
         """
+        if not self.value or len(self.value) < 4:
+            return False
         return self._add_prefixes_to_redis(self.value)
 
-    def get_text_list(self) -> List[str]:
+    def get_text_list(self) -> list[str]:
         """return text list for autocomplete
 
         :return: text list
@@ -98,13 +104,13 @@ class AutoComplete:
 
 @dataclass
 class TypeDetector:
-    value: str = None
+    value: str
 
     def __post_init__(self) -> None:
         self._redis = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB_CACHE)
         self._type_list_key_prefix = "type-list:"
 
-    def _get_types_from_db(self) -> List[Dict]:
+    def _get_types_from_db(self) -> list[dict]:
         """get regular expressions for parsing input text
 
         :raises SearchTypesDoesNotExists: if search types was not found in db
@@ -118,7 +124,7 @@ class TypeDetector:
         except types.DoesNotExist as error:
             raise DBTypesDoNotExist() from error
 
-    def _set_types_to_redis(self, types_list: List[Dict]) -> None:
+    def _set_types_to_redis(self, types_list: list[dict]) -> bool:
         """set types to cache
 
         :param query_list: prepared queries
@@ -134,12 +140,12 @@ class TypeDetector:
         except RedisError as error:
             raise RedisSetError from error
 
-    def _get_types_from_redis(self) -> List[Dict]:
+    def _get_types_from_redis(self) -> list[dict]:
         """get regular expressions for parsing input text
 
         :raises RedisNoDataError: if search types not found in cache
         :return: List if search types
-        :rtype: Optional[List[Dict]]
+        :rtype: list[dict]
         """
         try:
             types_list = self._redis.get(name=self._type_list_key_prefix)
@@ -149,7 +155,7 @@ class TypeDetector:
         except RedisError as error:
             raise RedisGetError from error
 
-    def detect(self) -> Union[str, None]:
+    def detect(self) -> str | None:
         """detect search type in search string
 
         :return: search typename
@@ -169,15 +175,46 @@ class TypeDetector:
                 return serach_type.get('typename')
 
 
-class Search:
-    def __init__(self, user: User, typename: str = None, name: str = None, value: str = None, date_from: datetime = None, date_to: datetime = None, is_log: bool = False) -> None:
-        self.user = user
-        self.typename = typename
-        self.name = name
-        self.value = value
-        self.date_from = date_from
-        self.date_to = date_to
-        self.is_log = is_log
+@dataclass(kw_only=True)
+class DefaultQueryParameters:
+    value: str
+    date_from: datetime | None = None
+    date_to: datetime | None = None
+    limit: int | None = QUERY_PAGINATION_LIMIT
+    offset: int | None = QUERY_PAGINATION_OFFSET
+
+    @classmethod
+    def init_from_dict(cls, initial_dict: dict):
+        class_fields = {f.name for f in fields(cls)}
+        return cls(**{key: value for key, value in initial_dict.items() if key in class_fields and value})
+
+    @validator('limit')
+    def validator_pagination_limit(cls, v, values, **kwargs):
+        return QUERY_PAGINATION_LIMIT if not v or v <= 0 else v
+
+    @validator('offset')
+    def validator_pagination_offset(cls, v, values, **kwargs):
+        return QUERY_PAGINATION_OFFSET if not v or v < 0 else v
+
+    @property
+    def as_dict(self) -> dict:
+        return asdict(self)
+
+    @property
+    def as_dict_without_none(self) -> dict:
+        return {key: value for key, value in self.as_dict.items() if value is not None}
+
+    @property
+    def is_changed(self) -> bool:
+        return bool(self.value) or self.limit != QUERY_PAGINATION_LIMIT or self.offset != QUERY_PAGINATION_OFFSET or bool(self.date_from) or bool(self.date_to)
+
+
+@dataclass(kw_only=True)
+class Search(DefaultQueryParameters):
+    user: User
+    typename: str | None = None
+    query: str | None = None
+    log_type: LoggingHandlers = LoggingHandlers.NO
 
     def _get_queries_from_db(self) -> QuerySet:
         """get list of queries
@@ -195,14 +232,14 @@ class Search:
                 # only for active sources
                 Q(source__active=True),
                 # security filter
-                Q(group__id__isnull=True) | Q(group__in=self.user.groups.all()),
+                Q(group__id__isnull=True) | Q(group__in=User.objects.get(username=self.user.username).groups.all()),
                 # addiditional filter if typename or query name is present
-                **{key: value for key, value in {'typename__typename': self.typename, 'name': self.name}.items() if value}
+                **{key: value for key, value in {'typename__typename': self.typename, 'name': self.query}.items() if value}
             ).prefetch_related('source').order_by('position').distinct()
         except queries.DoesNotExist as error:
             raise QueriesDoesNotExist() from error
 
-    def _set_queries_to_cache(self, query_list: List[Dict]) -> None:
+    def _set_queries_to_cache(self, query_list: list[dict]) -> None:
         """set queries to cache
 
         :param query_list: prepared queries
@@ -210,12 +247,15 @@ class Search:
         :raises CacheSetError: if cant seve to cache
         """
         for query in query_list:
+            if not (id := query.get('id')):
+                raise SearchIdNotDefined()
+
             try:
-                cache.set(query['id'], query, timeout=REDIS_CACHE_TTL)
+                cache.set(id, query, timeout=REDIS_CACHE_TTL)
             except InvalidCacheBackendError as error:
                 raise CacheSetError from error
 
-    def _log(self, values: List[str]):
+    def _log(self, values: list[str]):
         """log query if needed
 
         :param values: parsed values from text
@@ -223,9 +263,9 @@ class Search:
         """
         Log(
             # handlers=[LoggingHandlers.FILE, LoggingHandlers.KAFKA],
-            handlers=[LoggingHandlers.FILE],
+            handlers=[self.log_type],
             username=self.user.username,
-            typename=self.typename,
+            typename=self.typename if self.typename else 'Unknown',
             values=values
         ).log()
 
@@ -237,14 +277,17 @@ class Search:
             iframe=query['sources'][0].get('iframe')
         )
 
-    def execute(self) -> List[Dict]:
-        if not self.typename:
-            self.typename = TypeDetector(self.value).detect()
+    def execute(self) -> dict:
+        if self.value and not self.typename:
+            self.typename = TypeDetector(value=self.value).detect()
 
-        # init searchers
-        query_list = searchers(
+        if not self.value:
+            raise SearchValueNotDefined()
+
+        # init Searchers
+        query_list = Searchers(
             self._get_queries_from_db(),
-            search_text=self.value,
+            value=self.value,
             username=self.user.username,
             date_from=self.date_from,
             date_to=self.date_to
@@ -261,7 +304,52 @@ class Search:
         self._set_queries_to_cache(query_list)
 
         # log query
-        if self.is_log:
+        if self.log_type != LoggingHandlers.NO:
             self._log(values=[item['value'] for item in query_list[0].values])
 
         return QueryList(__root__=[self._get_query(query) for query in query_list]).dict()
+
+
+@dataclass(kw_only=True)
+class SearchQuery(DefaultQueryParameters):
+    id: str
+    username: str
+    value: str | None = None
+
+    def __post_init__(self) -> None:
+        self._redis = redis.StrictRedis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB_CACHE)
+
+    def _get_query_from_redis(self) -> dict:
+        """get query dict from redis
+
+        :raises RedisNoDataError: when no data is available
+        :raises RedisGetError: when get data fails
+        :return: List if search types
+        :rtype: list[dict]
+        """
+        try:
+            if not (result := cache.get(self.id)):
+                raise RedisNoDataError
+            return result
+        except Exception as error:
+            raise RedisGetError from error
+
+    def execute(self) -> DataResponseDict:
+        """init and execute Searcher
+
+        :raises SearcherObjectNotCreated: if Sercher object have not been created
+        :raises SearcherObjectExecutionError: if Sercher execution method have been ececuted with errors
+        :return: result of execution method
+        :rtype: str | list[dict] | None
+        """
+        init_dict: dict = self._get_query_from_redis()
+        init_dict.update(self.as_dict_without_none)
+        try:
+            searcher = Searcher.init_from_dict(initial_dict=init_dict, is_changed=self.is_changed)
+        except Exception as error:
+            raise SearcherObjectNotCreated from error
+
+        if (result := searcher.execute()) and not result.is_ok:
+            raise SearcherObjectExecutionError(message=result.errors_as_string)
+
+        return result.as_dict

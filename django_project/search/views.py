@@ -1,185 +1,188 @@
-from unittest import result
-from django.shortcuts import render, redirect
-from django.views import View
-from django.db.models import Q
-from django.core.cache import cache
-import re as regex
-
-from search.exceptions import (
-    RedisGetError, RedisSetError, DBTypesDoNotExist)
-from . import models, forms
-import logging
-from .searcher import searcher, searchers
+import json
+from django.shortcuts import render
+from .exceptions import (
+    DBTypesDoNotExist, SearchValueNotDefined,
+    RedisGetError, RedisSetError, RedisNoDataError,
+    SearcherObjectNotCreated, SearcherObjectExecutionError)
 from lib.response import Response
-from lib.log import Log, LoggingHandlers
 from lib.decorators import (
-    ViewExcept, ViewRmVaryHeader, ViewAuth, ViewMethod, ViewInputValidation)
+    ViewRmVaryHeader, ViewAuth)
 from JARVIS.enums import (
-    REDIS_CACHE_TTL, SERVER_VERSION, QUERY_LOGGING, HTTP_ERROR_CODE)
-from .service import Search, TypeDetector, AutoComplete
-from JARVIS.enums import HTTP_ERROR_CODE
+    SERVER_VERSION, QUERY_LOGGING_HANDLER)
+from .service import Search, TypeDetector, AutoComplete, SearchQuery
+from ninja import Router, Query
+from lib.ninja_api.exceptions import UnprocessableEntityError
+from lib.ninja_api.schemas import (
+    DataResponseSchema, DataResponseDict
+)
+from .schemas import (
+    SearchRequestSchema, QueryRequestSchema, ValueRequestSchema)
+import logging
+
 logger = logging.getLogger(__name__)
+router = Router()
 
 
-class SearchView(View):
-    """User settings View
-    """
+# class SearchView(View):
+#     """User settings View
+#     """
 
-    # @staticmethod
-    # @ViewAuth()
-    # @ViewInputValidation(model=forms.SearchModel)
-    # @ViewRmVaryHeader()
-    # def get(request, typename: str = None, name: str = None, *args, **kwargs):
-    #     return render(request, template_name='index.html', context={'SERVER_VERSION': SERVER_VERSION})
-    
-        # если тип заранее не определен, то определяем его по регуляркам
-        # if not typename:
-        #     # если typename не передается, то пытаемя найти по всем регуляркам
-        #     types = models.types.objects.filter(active=True).order_by('priority', 'typename')
-        #     for row in types:
-        #         # getting values from regexp
-        #         match = regex.search(row.regexp, request.pydantic_model.value)
-        #         if match:
-        #             typename = row.typename
-        #             break
+#     @staticmethod
+#     @ViewAuth()
+#     @ViewInputValidation(model=forms.SearchModel)
+#     @ViewRmVaryHeader()
+#     def get(request, typename: str | None = None, queryname: str | None = None, *args, **kwargs):
+#         # return redirect('/', typename=typename, queryname=queryname)
 
-        # # query
-        # queries = models.queries.objects.filter(
-        #     # only active queries
-        #     Q(active=True),
-        #     # only active types
-        #     Q(typename__active=True),
-        #     # only for active sources
-        #     Q(source__active=True),
-        #     # security filter
-        #     Q(group__id__isnull=True) | Q(group__in=request.user.groups.all()),
-        #     # addiditional filter if typename or query name is present
-        #     **{key: value for key, value in {'typename__typename': typename, 'name': name}.items() if value}
-        # ).prefetch_related('source').order_by('position').distinct()
+#         # add data to autocomplete
+#         try:
+#             AutoComplete(request.pydantic_model.value).add_text_to_redis()
+#         except RedisSetError:
+#             pass
+#         # prepare Search queries
+#         search_object = Search(
+#             user=request.user,
+#             value=request.pydantic_model.value,
+#             typename=typename,
+#             queryname=queryname,
+#             date_from=request.pydantic_model.date_from,
+#             date_to=request.pydantic_model.date_to,
+#             is_log=QUERY_LOGGING
+#         )
+#         # state = {text: string}
+#         initial_state = json.dumps(search_object.execute())
+#         return render(request, template_name='index.html', context={'SERVER_VERSION': SERVER_VERSION, 'initial_state': initial_state})
 
-        # if for user and existing input data no queries
-        # if not queries:
-        #     return Response.json_response(message='Для текущих данных запросов нет', status_code=HTTP_ERROR_CODE)
+#     @staticmethod
+#     @ViewAuth()
+#     @ViewInputValidation(model=forms.SearchModel)
+#     @ViewExcept(message="При подгоотовке запросов возникла ошибка")
+#     @ViewRmVaryHeader()
+#     def post(request, typename: str | None = None, queryname: str | None = None, *args, **kwargs):
+#         # add data to autocomplete
+#         try:
+#             AutoComplete(request.pydantic_model.value).add_text_to_redis()
+#         except RedisSetError:
+#             pass
 
-        # init searchers
-        # query_list = searchers(
-        #     queries,
-        #     search_text=request.pydantic_model.value,
-        #     username=request.user.username,
-        #     date_from=request.pydantic_model.date_from,
-        #     date_to=request.pydantic_model.date_to)
+#         #  todo: try except with custom errors and raise ninja errors
 
-        # if no identificaors in input text
-        # if query_list and query_list[0].value is None:
-        #     return Response.json_response(message='Идентификаторов в тексте не выявлено')
+#         # prepare Search queries
+#         search_object = Search(
+#             user=request.user,
+#             value=request.pydantic_model.value,
+#             typename=typename,
+#             queryname=queryname,
+#             date_from=request.pydantic_model.date_from,
+#             date_to=request.pydantic_model.date_to,
+#             is_log=QUERY_LOGGING
+#         )
+#         data = search_object.execute()
+#         return Response.json_data_response(data=data)
 
-        # # caching list of queries in redis cache
-        # new_queries = query_list.to_dict_list()
-        # for query in new_queries:
-        #     cache.set(query['id'], query, timeout=REDIS_CACHE_TTL)
 
-        # context
-        # context = {
-        #     'SERVER_VERSION': SERVER_VERSION,
-        #     'typename': typename,
-        #     'queries': new_queries,
-        #     'value': new_queries[0]['value'] if new_queries and 'value' in new_queries[0] else ""}
+@router.api_operation(['GET', 'POST'], '/', response=DataResponseSchema)
+def search(request, params: SearchRequestSchema = Query(...)):
+    try:
+        # SearchRequestSchema is dinamically created (type ignore)
+        AutoComplete(value=params.value).add_text_to_redis()  # type: ignore
+    except RedisSetError:
+        pass
 
-        # # logging query
-        # if QUERY_LOGGING:
-        #     Log(
-        #         # handlers=[LoggingHandlers.FILE, LoggingHandlers.KAFKA],
-        #         handlers=[LoggingHandlers.FILE],
-        #         username=request.user.username,
-        #         typename=typename,
-        #         values=[item['value'] for item in query_list[0].values]).log()
-
-        # render
-        # return render(request, template_name='index.html', context=context)
-
-    @staticmethod
-    @ViewAuth()
-    @ViewInputValidation(model=forms.SearchModel)
-    @ViewExcept(message="При подгоотовке запросов возникла ошибка")
-    @ViewRmVaryHeader()
-    def post(request, typename: str = None, name: str = None, *args, **kwargs):
-        # add data to autocomplete
-        try:
-            AutoComplete(request.pydantic_model.value).add_text_to_redis()
-        except RedisSetError:
-            pass
-        # prepare Search queries
-        search_object = Search(
-            user=request.user,
-            typename=typename,
-            name=name,
-            value=request.pydantic_model.value,
-            date_from=request.pydantic_model.date_from,
-            date_to=request.pydantic_model.date_to,
-            is_log=QUERY_LOGGING
-        )
+    # todo: try except with custom errors and raise ninja errors
+    initial_dict = params.dict()
+    initial_dict.update(dict(user=request.user, log_type=QUERY_LOGGING_HANDLER))
+    #     dict(username=request.user.username, log_type=QUERY_LOGGING)
+    # )
+    search_object = Search.init_from_dict(initial_dict=initial_dict)
+    try:
         data = search_object.execute()
+    except SearchValueNotDefined as error:
+        raise UnprocessableEntityError(message=f'{error}') from error
+
+    if request.method == 'POST':
         return Response.json_data_response(data=data)
+    return render(request, template_name='index.html', context={'SERVER_VERSION': SERVER_VERSION, 'initial_state': json.dumps(data)})
+
+# class SearchPath:
+
+#     @staticmethod
+#     def execute(request, params: dict):
+#         if not (value := params.get('value')):
+#             raise UnprocessableEntityError(message="Value not found")
+
+#         try:
+#             AutoComplete(value=value).add_text_to_redis()
+#         except RedisSetError:
+#             pass
+
+#         # todo: try except with custom errors and raise ninja errors
+#         # todo: do move path parameters (type and query) to query parameters
+
+#         # prepare Search queries
+#         search_object = Search(
+#             user=request.user,
+#             value=value,
+#             typename=params.get('typename'),
+#             queryname=params.get('queryname'),
+#             date_from=params.get('date_from'),
+#             date_to=params.get('date_to'),
+#             is_log=QUERY_LOGGING
+#         )
+
+#         try:
+#             data = search_object.execute()
+#         except SearchValueNotDefined as error:
+#             raise UnprocessableEntityError(message=f'{error}') from error
+
+#         if request.method == 'POST':
+#             return Response.json_data_response(data=data)
+#         return render(request, template_name='index.html', context={'SERVER_VERSION': SERVER_VERSION, 'initial_state': json.dumps(data)})
+
+#     @staticmethod
+#     @router.api_operation(['GET', 'POST'], '/', response=DataResponseSchema)
+#     def search(request, params: SearchRequestSchema = Query(...)):
+#         return SearchPath.execute(request=request, params=params.dict())
+
+#     @staticmethod
+#     @router.api_operation(['GET', 'POST'], '/{typename}/', response=DataResponseSchema)
+#     def search_typename(request, typename: str, params: SearchRequestSchema = Query(...)):
+#         params_dict = params.dict()
+#         params_dict.update(dict(typename=typename))
+#         return SearchPath.execute(request=request, params=params_dict)
+
+#     @staticmethod
+#     @router.api_operation(['GET', 'POST'], '/{typename}/{queryname}/', response=DataResponseSchema)
+#     def search_typename_queryname(request, typename: str, queryname: str, params: SearchRequestSchema = Query(...)):
+#         params_dict = params.dict()
+#         params_dict.update(dict(typename=typename, queryname=queryname))
+#         return SearchPath.execute(request=request, params=params_dict)
 
 
-@ViewMethod(method=['GET'])
+@router.get("/query", response=DataResponseSchema)
 @ViewAuth()
 @ViewRmVaryHeader()
-def query(request, hash: str = None):
-    """query from page
-
-    :param hash: index in redis cache for retrieving cached query, defaults to None
-    :type hash: str, optional
+def query(request, params: QueryRequestSchema = Query(...)):
+    """Query from page
     """
-
-    if not hash:
-        return Response.json_response(message='Присланы некоректные данные', status_code=400)
-
-    # retrieving query from redis cache
+    # todo add autocomplete if value exists
     try:
-        init_dict = cache.get(str(hash))
-        if not init_dict:
-            raise ValueError('Запрос отсутсвует в REDIS')
+        params_dict = params.dict()
+        params_dict.update(dict(username=request.user.username))
+        return SearchQuery.init_from_dict(initial_dict=params_dict).execute()
+    except (SearcherObjectExecutionError, SearcherObjectNotCreated, RedisNoDataError, RedisGetError) as error:
+        raise UnprocessableEntityError(message=f'{error}') from error
     except Exception as error:
-        return Response.json_response(message=f'Ошибка получения запроса из REDIS: {error}')
-
-    # set username
-    init_dict['username'] = request.user.username
-    init_dict['search_text'] = request.GET.get('value', None)
-
-    try:
-        query = searcher(init_dict=init_dict, with_preparation=bool(init_dict['search_text']))
-    except Exception as error:
-        return Response.json_response(message=f'Ошибка подготовки запроса: {error}')
-
-    # executing query
-    is_data, result = query.execute()
-
-    if not result and query.errors:
-        return Response.json_response(message=query.errors_as_string)
-
-    # if IFrame then redirect
-    if not is_data:
-        return redirect(result)
-
-    # all other
-    return Response.json_data_response(data=result, message=query.errors_as_string)
+        raise UnprocessableEntityError(message=f'Query execution error: {error}') from error
 
 
-@ViewMethod(method=['GET'])
+@router.get("/value.info", response=DataResponseSchema)
 @ViewAuth()
-@ViewInputValidation(model=forms.BaseSearchModel)
 @ViewRmVaryHeader()
-def value_info(request, *args, **kwargs):
-    autocomplete = []
+def value_info(request, params: ValueRequestSchema = Query(...)):
     try:
-        autocomplete = AutoComplete(request.pydantic_model.value).get_text_list()
-    except (RedisGetError, ) as error:
-        logger.error(f"{error}")
-
-    typename = ""
-    try:
-        typename = TypeDetector(request.pydantic_model.value).detect() or ""
-    except (DBTypesDoNotExist) as error:
-        logger.error(f"{error}")
-    return Response.json_data_response(data={'typename': typename, 'autocomplete': autocomplete})
+        typename = TypeDetector(value=params.value).detect() or ""
+        autocomplete = AutoComplete(value=params.value).get_text_list() or []
+        return DataResponseDict(data=dict(typename=typename, autocomplete=autocomplete), message="OK")
+    except (RedisGetError, DBTypesDoNotExist) as error:
+        raise UnprocessableEntityError(message=f'{error}') from error

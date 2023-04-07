@@ -5,7 +5,6 @@ import traceback
 import json
 from jsonpath_ng import parse
 from lxml import etree
-from typing import List, Union
 from lib.enum import FactoryEnum
 
 
@@ -21,7 +20,7 @@ class ParserAbstractFactory(ABC):
     code: str
 
     @abstractmethod
-    def execute(self) -> None:
+    def execute(self) -> list[dict]:
         pass
 
 
@@ -29,7 +28,7 @@ class ParserAbstractFactory(ABC):
 class TextParser(ParserAbstractFactory):
     """Text parser
     """
-    def execute(self) -> List[dict]:
+    def execute(self) -> list[dict]:
         return [{"text": self.text}]
 
 
@@ -37,10 +36,10 @@ class TextParser(ParserAbstractFactory):
 class XMLParser(ParserAbstractFactory):
     """xml text parser with XPath
     """
-    def execute(self) -> List[dict]:
+    def execute(self) -> list[dict]:
         result = []
         try:
-            tree = etree.fromstring(self.text)
+            tree = etree.fromstring(self.text)  # type: ignore
             for item in tree.xpath(self.code):
                 if isinstance(item, (str, int, bool, float)):
                     result.append({"attribute": item})
@@ -75,7 +74,7 @@ class XMLParser(ParserAbstractFactory):
 class JsonParser(ParserAbstractFactory):
     """json text parser with JsonPath
     """
-    def execute(self) -> List[dict]:
+    def execute(self) -> list[dict]:
         result = []
         try:
             oJson = json.loads(self.text)
@@ -98,7 +97,7 @@ class JsonParser(ParserAbstractFactory):
 class PythonParser(ParserAbstractFactory):
     """python text parser
     """
-    def execute(self) -> List[dict]:
+    def execute(self) -> list[dict]:
         try:
             locals = {'results': [], 'text': self.text}
             exec(self.code, locals)
@@ -129,17 +128,17 @@ class Parser:
     """
     text: str
     code: str
-    parser: Union[ParserType, str, None] = ParserType.TEXT
+    parser: ParserType | str | None = ParserType.TEXT
 
     def __post_init__(self) -> None:
         if isinstance(self.parser, (str, type(None))):
-            self.parser = ParserType.get_member(self.parser) or ParserType.TEXT
+            self.parser = ParserType(ParserType.get_member(self.parser)) or ParserType.TEXT
 
     def _create_factory(self, parser: ParserType) -> ParserAbstractFactory:
         return parser.factory(text=self.text, code=self.code)
 
-    def execute(self) -> List[dict]:
+    def execute(self) -> list[dict]:
         """execute parser
         """
-        factory = self._create_factory(parser=self.parser)
+        factory = self._create_factory(parser=self.parser)  # type: ignore
         return factory.execute()

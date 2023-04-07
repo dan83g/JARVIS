@@ -48,12 +48,17 @@ const DEFAULT_THEME_OPTIONS: themeOption[] = [
 ];
 const DEFAULT_THEME: string = 'vela-orange';
 
+interface groupOption {
+    id: number;
+    name: string;
+}
+
 interface IUserSettings {
     username: string | null;
     last_name: string ;
     first_name: string;
     email: string;
-    groups: string[];
+    groups: groupOption[];
     last_login: string;
     theme: string;
     errors: boolean;
@@ -78,7 +83,7 @@ export class UserStore {
     last_name?: string = '';
     first_name?: string = '';
     email?: string = '';
-    groups?: string[] = [];
+    groups?: groupOption[] = [];
     last_login?: string = '';
     theme?: string | null = 'vela-blue';
     errors?: boolean = false;
@@ -112,7 +117,7 @@ export class UserStore {
 
         // load user info
         try {
-            let userData = await User.loadSettings();        
+            let userData = await User.getInfo();        
             this.setUserSettings(userData)
         } catch(error) {
             toast.error(`${error}`);                
@@ -122,7 +127,7 @@ export class UserStore {
     saveUserSettings = async () => {
         let settings = new UserSettingsToSave(this as IUserSettings);
         try {
-            let _ = await User.saveSettings(settings);
+            await User.saveSettings(settings);
             toast.success('Настройки успешно сохранены')
         } catch(error) {
             toast.error(`${error}`);                
@@ -130,12 +135,7 @@ export class UserStore {
     }
 
     setUserSettings = (settings: IUserSettings) => {
-        this.username = settings.username;
-        this.last_name = settings.last_name;
-        this.first_name = settings.first_name;
-        this.email = settings.email;
-        this.last_login = settings.last_login;
-        this.groups = settings.groups;
+        Object.assign(this, settings);
     }
 
     setErrors = (errors: boolean) => {
@@ -151,7 +151,7 @@ export class UserStore {
     updateTheme = (theme: string) => {        
         let themeLink = document.getElementById('app-theme') as HTMLLinkElement;
         if (themeLink && theme) {
-            themeLink.href = fullUrl(`themes/${theme}/theme.css`);
+            themeLink.href = fullUrl(`static/themes/${theme}/theme.css`);
             this.setTheme(theme);
             setTimeout(this.root.tabViewStore?.setDatatableHeight, 1000);
         }

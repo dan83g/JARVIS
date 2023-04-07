@@ -2,17 +2,19 @@ import os
 import logging
 import threading
 from datetime import datetime
-from enum import Enum
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from JARVIS import enums
-from .decorators import Except
-from typing import Union, List
 from kafka import KafkaProducer
 import json
 from lib.encoders import JsonEncoder
+from lib.enum import FactoryEnum
+from typing import Union, List
 
 logger = logging.getLogger(__name__)
+
+
+class LoggingException(Exception):
+    pass
 
 
 @dataclass
@@ -32,17 +34,15 @@ class LogAbstractFactory(ABC):
         pass
 
 
-@dataclass
+@dataclass(kw_only=True)
 class FileFactory(LogAbstractFactory):
-    def __post_init__(self) -> None:
-        self.logging_dir = enums.QUERY_LOGGING_DIR
-        self.filename = f"query_log_{datetime.now().strftime(r'%Y%m%d')}.log"
+    logging_dir: str
+    filename: str = f"query_log_{datetime.now().strftime(r'%Y%m%d')}.log"
 
     def prepare_logging_data(self) -> str:
         return f'{datetime.now():%Y.%m.%d %H:%M:%S} {self.username} {self.typename} {", ".join(self.values)}\n'
 
-    @Except(logger=logger)
-    def execute(self, logging_data: str = None) -> None:
+    def execute(self, logging_data: str) -> None:
         """file logging handler
 
         :param logging_data: line string for logging, defaults to ''
@@ -69,12 +69,11 @@ class FileFactory(LogAbstractFactory):
             logger.error(f'Ошибка логирования: Невозможно записать в файл {logging_full_filename}: {error}')
 
 
-@dataclass
+@dataclass(kw_only=True)
 class KafkaFactory(LogAbstractFactory):
-    def __post_init__(self) -> None:
-        self.kafka_host = enums.KAFKA_HOST
-        self.kafka_port = enums.KAFKA_PORT
-        self.kafka_topic = enums.KAFKA_TOPIC
+    host: str
+    port: int
+    topic: str
 
     def prepare_logging_data(self) -> dict:
         return {
@@ -104,7 +103,7 @@ class KafkaFactory(LogAbstractFactory):
                 # linger_ms=10,
             )
         except Exception as error:
-            logger.error(f'Ошибка логирования: Ошибка создания класса KafkaProducer: {error}')
+            raise LoggingException(f"Can't create KafkaProducer: {error}")
 
     def _send_data(self, producer: KafkaProducer, topic: str, data_dict: dict) -> None:
         """send data to kafka
@@ -113,26 +112,28 @@ class KafkaFactory(LogAbstractFactory):
             producer.send(topic, data_dict)
             producer.flush(timeout=1.0)
             producer.close()
-            return True
         except Exception as error:
             logger.error(f'Ошибка логирования: Ошибка отправки данных в Kafka: {error}')
 
-    @Except(logger=logger)
-    def execute(self, logging_data: dict = None) -> None:
+    def execute(self, logging_data: dict) -> None:
         """kafka logging handler
 
         :param logging_data: dict data for logging, defaults to {}
         :type logging_data: dict, optional
         """
-        producer = self._get_producer([f"{self.kafka_host}:{self.kafka_port}"])
-        self._send_data(producer=producer, topic=self.kafka_topic, data_dict=logging_data)
+        try:
+            producer = self._get_producer([f"{self.host}:{self.port}"])
+            self._send_data(producer=producer, topic=self.topic, data_dict=logging_data)
+        except Exception as error:
+            logger.error(f"Logging error: Can't send log to Kafka: {error}")
 
 
 class KafkaHandler():
     """Класс обработки Kafka"""
 
-    def __init__(self, servers: str, topic: str) -> bool:
-        """servers - list ['localhost:9092'] """
+    def __init__(self, servers: str, topic: str) -> None:
+        """servers - list ['localhost:9092']
+        """
         self.servers = servers
         self.errors = []
         self.topic = topic
@@ -150,14 +151,14 @@ class KafkaHandler():
                 # api_version=(2, 5, 0)
                 # linger_ms=10,
             )
-            return True
         except Exception as error:
             self.errors.append(f"Ошибка создания класса KafkaProducer: {error}")
 
 
-class LoggingHandlers(Enum):
+class LoggingHandlers(FactoryEnum):
     """storing logging handlers types
     """
+    NO = None
     FILE = FileFactory
     KAFKA = KafkaFactory
 
@@ -187,7 +188,7 @@ class Log:
         self.values = values
 
     def create_factory(self, logging_handler: LoggingHandlers) -> LogAbstractFactory:
-        return logging_handler.factory(self.username, self.typename, self.values)
+        return logging_handler.factory(self.username, self.typename, self.values)  # type: ignore
 
     def log(self):
         """run log data

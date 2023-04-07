@@ -1,24 +1,19 @@
-import axios, { AxiosPromise } from 'axios';
+import axios from 'axios';
 import { Method } from 'axios';
 
 var server: string = ""
-export var errorStatusCode: number =  417
+export var errorStatusCode: number =  422
 // if development
 if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
-    server = "http://localhost:8080";
-    errorStatusCode = 206
+    server = "http://1.0.0.8:8080";
+    errorStatusCode = 422;
 } else {}
 
-export type SuccessdHandler = (data: any) => void;
 export type ErrorHandler = (error: any) => void;
 
-const successHandler = (data: any): any => {
-    if (data.data && data?.status=="success")
-        return data.data
-    else console.log("Сервер вернул ответ неустановленного вида");    
-}
+
 const errorHandler = (error: any): string => {
-    if (error.response?.status == errorStatusCode) 
+    if (error.response?.status === errorStatusCode) 
         return error.response.data.message    
     else if (error.response?.status) 
         return `Ошибка сервера: ${error.response.status} (${error.response.statusText})`
@@ -36,7 +31,7 @@ export const Requests = {
                 timeout: 30000,
                 params: params
              });
-             return successHandler(response.data);
+            return response.status === 200 && response.data.data ? response.data.data : [];
         } catch (error) {
             throw errorHandler(error);
         }        
@@ -53,7 +48,7 @@ export const Requests = {
                 },
                 data: data
              });
-             return successHandler(response.data);
+             return response.status === 200 && response.data.data ? response.data.data : [];
         } catch (error) {
             throw errorHandler(error);
         }        
@@ -66,7 +61,7 @@ export function baseUrl(): string{
 }
 
 export function fullUrl(sub_url: string): string{
-    if (sub_url.substring(0,1) != '/')
+    if (sub_url.substring(0,1) !== '/')
         return `${baseUrl()}/${sub_url}`
     return `${baseUrl()}${sub_url}`
 }
