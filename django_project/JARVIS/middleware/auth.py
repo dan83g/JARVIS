@@ -5,19 +5,20 @@ from django.contrib.auth.middleware import RemoteUserMiddleware
 from django.contrib.auth.backends import RemoteUserBackend
 from django.contrib.auth.hashers import make_password
 from django.contrib.auth import load_backend
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import Group
+from security.models import User
 from django.core.exceptions import ImproperlyConfigured
 from django.utils.deprecation import MiddlewareMixin
 from django.contrib import auth
 from django.http import HttpResponse
 import base64
-from security.models import ldap
+from security.service import UserUpdateter
 import logging
 logger = logging.getLogger(__name__)
 
 
 class HttpRemoteUserBackend(RemoteUserBackend):
-    def clean_username(self, username, shallow=False):
+    def clean_username(self, username, shallow=False) -> str:
         try:
             username = str(base64.b64decode(username), "utf-8")
         except Exception:
@@ -27,6 +28,13 @@ class HttpRemoteUserBackend(RemoteUserBackend):
         if len(splits) == 2:
             return splits[1]
         return username
+
+    def authenticate(self, request, remote_user: str) -> User | None:
+        """Rewriting of standart authenticate method
+        """
+        if not remote_user:
+            return
+        return User.objects.get_or_create(username=self.clean_username(remote_user))[0]
 
 
 class HttpRemoteUserMiddleware(RemoteUserMiddleware):
@@ -60,7 +68,7 @@ class HttpRemoteUserMiddleware(RemoteUserMiddleware):
             user.groups.remove(group.id)
 
     def get_or_create_user(self, username: str, first_name: str = "", last_name: str = "", email: str = "") -> User:
-        user, created = User.objects.get_or_create(
+        user, _ = User.objects.get_or_create(
             username=username,
             defaults={
                 'username': username,
@@ -100,39 +108,20 @@ class HttpRemoteUserMiddleware(RemoteUserMiddleware):
                 return
             self._remove_invalid_user(request)
 
-        # аутентификация
+        # authenticate
         user = auth.authenticate(request, remote_user=username)
         if not user:
             return
 
+        # login
         request.user = user
         auth.login(request, user)
 
-        if not user.password:
-            user.set_unusable_password()
-            user.save()
-
-        # update LDAP
-        oLdap = ldap.objects.filter(active=True).first()
-        if oLdap:
-            oLdap.update_users(User(user))
-
-        # # external users
-        # # дополнительные поля
-        # email = request.META.get(self.header_email, None)
-        # if email is not None:
-        #     request.user.email = email
-        # firstname = request.META.get(self.header_firstname, None)
-        # if firstname is not None:
-        #     request.user.first_name = firstname
-        # lastname = request.META.get(self.header_lastname, None)
-        # if lastname is not None:
-        #     request.user.last_name = lastname
-
-        # # update groups for external users
-        # if email or firstname or lastname:
-        #     self.update_user_groups(request)
-        #     request.user.save()
+        # update user when auth success
+        try:
+            UserUpdateter().update_current_user_by_rdn(user=user)  # type: ignore (we know that the user instance has custom User class)
+        except Exception as error:
+            logger.warning(f'{error}')
 
 
 class BasicAuthMiddleware(MiddlewareMixin):

@@ -58,7 +58,8 @@ CACHES = {
 }
 
 MIDDLEWARE = [
-    'JARVIS.middleware.vary.RemoveVaryHeader',
+    # 'JARVIS.middleware.vary.RemoveVaryHeader',
+    'JARVIS.middleware.vary.SetVaryHeader',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',

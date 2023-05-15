@@ -86,3 +86,8 @@ class SearcherObjectNotCreated(SearcherException):
 class SearcherObjectExecutionError(SearcherException):
     def __init__(self, message: str | None = None):
         super().__init__(message or "Searcher object execution error")
+
+
+class SearcherObjectReturnUrl(SearcherException):
+    def __init__(self, message: str | None = None):
+        super().__init__(message or "Searcher object return Url")

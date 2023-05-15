@@ -1,12 +1,13 @@
 
 from django.core.exceptions import ValidationError
 from django.utils.deconstruct import deconstructible
+from django.utils.translation import gettext_lazy as _
 import json
 
 
 @deconstructible
 class JsonTextValidator:
-    message = 'Неверный формат JSON'
+    message = _('Invalid JSON format')
     code = 'invalid'
 
     def __init__(self, message=None, code=None):
@@ -22,4 +23,4 @@ class JsonTextValidator:
             raise ValidationError(
                 message=f"{self.message}: {error}",
                 code=self.code
-            )
+            ) from error

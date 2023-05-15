@@ -1,5 +1,6 @@
 try:
     from .common import *  # noqa
+    from .user import *  # noqa
     from .database import *  # noqa
     from .sentry import *  # noqa
     from .jet import *  # noqa

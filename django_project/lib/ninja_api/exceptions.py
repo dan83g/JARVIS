@@ -36,8 +36,9 @@ def validation_errors(request, exc):
 
 # ======================== 401 ================================
 class UnauthorizedError(BasicHttpError):
-    def __init__(self):
-        super().__init__("Unauthorized")
+    def __init__(self, message: str = ''):
+        self.message = message
+        super().__init__(self.message if self.message else "Unauthorized")
 
 
 @api.exception_handler(UnauthorizedError)
@@ -77,7 +78,7 @@ def forbidden(request, exc):
 class UnprocessableEntityError(BasicHttpError):
     def __init__(self, message: str = ''):
         self.message = message
-        super().__init__("Unprocessable Entity")
+        super().__init__(self.message or "Unprocessable Entity")
 
 
 @api.exception_handler(UnprocessableEntityError)

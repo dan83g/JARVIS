@@ -10,14 +10,6 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AlterModelOptions(
-            name='proxy_group',
-            options={'verbose_name': 'Группы безопасности', 'verbose_name_plural': 'Группы безопасности'},
-        ),
-        migrations.AlterModelOptions(
-            name='proxy_user',
-            options={'verbose_name': 'Пользователи', 'verbose_name_plural': 'Пользователи'},
-        ),
         migrations.AlterField(
             model_name='ldap',
             name='password',

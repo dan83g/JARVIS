@@ -6,7 +6,7 @@ from .exceptions import (
     SearcherObjectNotCreated, SearcherObjectExecutionError)
 from lib.response import Response
 from lib.decorators import (
-    ViewRmVaryHeader, ViewAuth)
+    set_vary_header, handle_exceptions, authenticated)
 from JARVIS.enums import (
     SERVER_VERSION, QUERY_LOGGING_HANDLER)
 from .service import Search, TypeDetector, AutoComplete, SearchQuery
@@ -18,7 +18,7 @@ from lib.ninja_api.schemas import (
 from .schemas import (
     SearchRequestSchema, QueryRequestSchema, ValueRequestSchema)
 import logging
-
+# from django.views.decorators.vary import vary_on_headers
 logger = logging.getLogger(__name__)
 router = Router()
 
@@ -28,7 +28,7 @@ router = Router()
 #     """
 
 #     @staticmethod
-#     @ViewAuth()
+#     @authenticated()
 #     @ViewInputValidation(model=forms.SearchModel)
 #     @ViewRmVaryHeader()
 #     def get(request, typename: str | None = None, queryname: str | None = None, *args, **kwargs):
@@ -54,7 +54,7 @@ router = Router()
 #         return render(request, template_name='index.html', context={'SERVER_VERSION': SERVER_VERSION, 'initial_state': initial_state})
 
 #     @staticmethod
-#     @ViewAuth()
+#     @authenticated()
 #     @ViewInputValidation(model=forms.SearchModel)
 #     @ViewExcept(message="При подгоотовке запросов возникла ошибка")
 #     @ViewRmVaryHeader()
@@ -160,15 +160,21 @@ def search(request, params: SearchRequestSchema = Query(...)):
 
 
 @router.get("/query", response=DataResponseSchema)
-@ViewAuth()
-@ViewRmVaryHeader()
+@authenticated()
+@handle_exceptions(message="Unexpected Error")
+@set_vary_header('Accept-Encoding')
 def query(request, params: QueryRequestSchema = Query(...)):
     """Query from page
     """
-    # todo add autocomplete if value exists
+    try:
+        # QueryRequestSchema is dinamically created (type ignore)
+        AutoComplete(value=params.value).add_text_to_redis()  # type: ignore
+    except RedisSetError:
+        pass
+
     try:
         params_dict = params.dict()
-        params_dict.update(dict(username=request.user.username))
+        params_dict.update(dict(user=request.user))
         return SearchQuery.init_from_dict(initial_dict=params_dict).execute()
     except (SearcherObjectExecutionError, SearcherObjectNotCreated, RedisNoDataError, RedisGetError) as error:
         raise UnprocessableEntityError(message=f'{error}') from error
@@ -177,8 +183,8 @@ def query(request, params: QueryRequestSchema = Query(...)):
 
 
 @router.get("/value.info", response=DataResponseSchema)
-@ViewAuth()
-@ViewRmVaryHeader()
+@authenticated()
+@set_vary_header('Accept-Encoding')
 def value_info(request, params: ValueRequestSchema = Query(...)):
     try:
         typename = TypeDetector(value=params.value).detect() or ""

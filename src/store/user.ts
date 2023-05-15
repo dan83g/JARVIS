@@ -46,7 +46,8 @@ const DEFAULT_THEME_OPTIONS: themeOption[] = [
     { value: 'vela-orange', logoClass: 'dark' },
     { value: 'vela-purple', logoClass: 'dark' },
 ];
-const DEFAULT_THEME: string = 'vela-orange';
+const DEFAULT_DARK_THEME: string = 'vela-orange';
+const DEFAULT_LIGHT_THEME: string = 'nova';
 
 interface groupOption {
     id: number;
@@ -98,11 +99,12 @@ export class UserStore {
     }
 
     initialLoad = () => {
-        let rootElement = document.getElementById('root') as HTMLElement;
-        if (rootElement){
-            this.username = rootElement.hasAttribute('username') ? rootElement.getAttribute('username') : this.username;
-            this.theme = rootElement.hasAttribute('theme') ? rootElement.getAttribute('theme') : this.theme;
-        }
+        this.setDefaultTheme();
+        // let rootElement = document.getElementById('root') as HTMLElement;
+        // if (rootElement){
+        //     this.username = rootElement.hasAttribute('username') ? rootElement.getAttribute('username') : this.username;
+        //     this.theme = rootElement.hasAttribute('theme') ? rootElement.getAttribute('theme') : this.theme;
+        // }
     }
 
     loadSettings = async () => {
@@ -141,6 +143,13 @@ export class UserStore {
     setErrors = (errors: boolean) => {
         window.localStorage.setItem('errors', errors.toString())
         this.errors = errors;
+    }
+
+    setDefaultTheme = (): void => {
+        if (window.matchMedia("(prefers-color-scheme: dark)").matches)
+            this.updateTheme(DEFAULT_DARK_THEME);
+        else
+            this.updateTheme(DEFAULT_LIGHT_THEME);
     }
 
     setTheme = (theme: string) => {

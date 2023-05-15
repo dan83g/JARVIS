@@ -57,6 +57,9 @@ if [ -f "/requirements.txt" ]; then
     $(command -v pip) install --user -r /requirements.txt
 fi
 
+# execute custom sql migrations
+cat ./migrations.sql | python /opt/site/django_project/manage.py dbshell
+
 # migrate current database
 echo "$(date) - Aplying database migrations"
 python /opt/site/django_project/manage.py migrate

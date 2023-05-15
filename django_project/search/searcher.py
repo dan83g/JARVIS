@@ -56,6 +56,7 @@ class Searcher:
     regexp: str
     datatype: str
     query: str
+    username: str
     limit: int = QUERY_PAGINATION_LIMIT
     offset: int = QUERY_PAGINATION_OFFSET
     value: str | None = ''
@@ -95,6 +96,8 @@ class Searcher:
         self.date_from = parser.parse(self.date_from) if isinstance(self.date_from, str) else None
         self.date_to = parser.parse(self.date_to) if isinstance(self.date_to, str) else None
 
+        # if new query, remove old values
+        self.values = []
         # get values from text by regex and add them for future jinja preparation
         for match in re.finditer(self.regexp, self.value or ''):
             # add regex named groups
@@ -159,7 +162,7 @@ class Searcher:
                 original_value=self.values[0]['value'],
                 original_values_list=[value['value'] for value in self.values],
                 groups_list=self.values,
-                username=self.__dict__.get('username'),
+                username=self.username,
                 date_from=self.date_from,
                 date_to=self.date_to,
                 now=datetime.now())
@@ -200,12 +203,17 @@ class Searcher:
         # preparing query by jinja
         self.prepared_query = self._apply_jinja(self.query)
 
+        # preparing headers by jinja
+        if hasattr(self, 'headers'):
+            self.headers = self._apply_jinja(self.headers)
+
+        # preparing source_headers by jinja
+        if hasattr(self, 'source_headers'):
+            self.source_headers = self._apply_jinja(self.source_headers)
+
         # if source is WEB then prepare url for iframe
         if (url := self._try_web()):
             return SearcherResult(url=url)
-
-        # preparing request data by jinja
-        self.request_data = self._apply_jinja(self.request_data)
 
         # prepare init dict for handlers
         handler_initial_dict = self.selialize(exclude_attrs=['values', ''])

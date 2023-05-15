@@ -1,10 +1,13 @@
 from django.contrib import admin
 from django.contrib import messages
 from django.contrib.auth.admin import GroupAdmin, UserAdmin
-from django.contrib.auth.models import Group, User
+from django.contrib.auth.models import Group
+from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
 from django.forms import PasswordInput
 from lib.decorators import Description
+from lib.ldap import LDAP
+from .service import UserUpdateter
 from . import models
 
 
@@ -30,16 +33,39 @@ def action_deactivate(modeladmin, request, queryset):
     modeladmin.message_user(request, "Обновлено: %s" % message_bit)
 
 
+@admin.register(models.User)
+class userAdmin(UserAdmin):
+    fieldsets = (
+        (None, {"fields": ("username", "password")}),
+        (_("Personal info"), {"fields": ("first_name", "last_name", "email")}),
+        (
+            _("Permissions"),
+            {
+                "fields": (
+                    "is_active",
+                    "is_staff",
+                    "is_superuser",
+                    "groups",
+                    "user_permissions",
+                ),
+            },
+        ),
+        (_("Important dates"), {"fields": ("last_login", "date_joined")}),
+        (_("GUID"), {"fields": ("guid", )}),
+        (_("Settings"), {"fields": ("settings", )}),
+    )
+
+
 # unregister original Group and User models from admin
 admin.site.unregister(Group)
-admin.site.unregister(User)
+# admin.site.unregister(User)
 
 
-# register proxy User model
-@admin.register(models.proxy_user)
-class proxy_userAdmin(UserAdmin):
-    ordering = ['username']
-    actions = [action_activate, action_deactivate]
+# # register proxy User model
+# @admin.register(models.proxy_user)
+# class proxy_userAdmin(UserAdmin):
+#     ordering = ['username']
+#     actions = [action_activate, action_deactivate]
 
 
 # register proxy Group model
@@ -72,7 +98,7 @@ class ldapAdmin(admin.ModelAdmin):
         return super(ldapAdmin, self).formfield_for_dbfield(db_field, **kwargs)
 
     def response_change(self, request, obj):
-        # Сохраняем модель
+        # save model
         if "_continue" in request.POST:
             try:
                 obj.save()
@@ -81,16 +107,19 @@ class ldapAdmin(admin.ModelAdmin):
 
         # Test LDAP connection
         if request.POST.get("_continue", None) == "Тест подключения":
-            if not obj.test_connection():
-                self.message_user(request, obj.errors_as_string, level=messages.ERROR)
-            else:
-                self.message_user(request, r"Тест подключения успешно пройден")
+            try:
+                ldap = LDAP.init_from_dict(obj.as_dict())  # type: ignore
+                ldap.test_connection()
+                self.message_user(request, 'Тест подключения успешно пройден')
+            except Exception as error:
+                self.message_user(request, f'{error}', level=messages.ERROR)
 
         # update users and groups
         elif request.POST.get("_continue", None) == "Обновить данные пользователей":
-            if not obj.update_users():
-                self.message_user(request, obj.errors_as_string, level=messages.ERROR)
-            else:
-                self.message_user(request, r"Пользователи успешно обновлены")
+            try:
+                UserUpdateter().update_all_existing_users()
+                self.message_user(request, 'Пользователи успешно обновлены')
+            except Exception as error:
+                self.message_user(request, f'{error}', level=messages.ERROR)
 
         return super().response_change(request, obj)

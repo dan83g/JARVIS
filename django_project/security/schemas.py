@@ -1,17 +1,15 @@
 from ninja import ModelSchema, Schema
 from django.contrib.auth.models import User, Group
-from typing import List
 
 
 class GroupSchema(ModelSchema):
-
     class Config:
         model = Group
         model_fields = ['id', 'name']
 
 
 class UserSchema(ModelSchema):
-    groups: List[GroupSchema] = []
+    groups: list[GroupSchema] = []
 
     class Config:
         model = User

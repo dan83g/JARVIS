@@ -12,6 +12,7 @@ from django.forms import PasswordInput
 from api.forms import ApiSearchModel
 import re as regex
 from datetime import datetime
+from typing import Any
 
 
 # Добавляем действие для админки
@@ -203,7 +204,7 @@ class sourcesAdmin(admin.ModelAdmin):
             kwargs['widget'] = PasswordInput(render_value=True)
         return super(sourcesAdmin, self).formfield_for_dbfield(db_field, **kwargs)
 
-    def response_change(self, request, obj):
+    def response_change(self, request, obj: Any):
         self.errors = []
         if "_continue" in request.POST and request.POST.get("_continue", None) == "Тест подключения":
             try:
@@ -211,21 +212,14 @@ class sourcesAdmin(admin.ModelAdmin):
             except Exception as error:
                 self.message_user(request, f"Ошибка при сохранении запроса {error}", level=messages.ERROR)
 
-            # тестируем подключение
-            if not self.test_source(obj):
-                self.message_user(request, r"\r\n ".join(error for error in self.errors), level=messages.ERROR)
-            else:
-                self.message_user(request, r"Тест подключения успешно пройден")
+            try:
+                handler = Handler(initial_dict=obj.selialize(), handler_name=obj.source_type)
+                if handler.ping() is True:
+                    self.message_user(request, r"Тест подключения успешно пройден")
+            except Exception as error:
+                self.message_user(request, f'{error}', level=messages.ERROR)
 
         return super().response_change(request, obj)
-
-    def test_source(self, obj):
-        try:
-            handler = Handler(initial_dict=obj.selialize(), handler_name=obj.source_type)
-            return handler.ping()
-        except Exception as error:
-            self.errors.extend(f'{error}')
-        return False
 
 
 # модель настройки типов идентификаторов

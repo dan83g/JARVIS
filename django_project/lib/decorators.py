@@ -6,6 +6,7 @@ import logging
 import typing
 from .response import Response
 from JARVIS.enums import HTTP_ERROR_CODE
+from lib.ninja_api.exceptions import UnprocessableEntityError, UnauthorizedError
 
 
 class Description:
@@ -59,7 +60,7 @@ class Except:
         return wrapper
 
 
-class BaseDecoratorView:
+class BaseEndpointDecorator:
     """Base class for view"""
     @abstractmethod
     def __init__(self, *args, **kwargs) -> None:
@@ -70,11 +71,11 @@ class BaseDecoratorView:
         pass
 
 
-class ViewRmVaryHeader(BaseDecoratorView, Response):
+class ViewRmVaryHeader(BaseEndpointDecorator, Response):
     """Django view-decorator for Vary header processing
 
     :returns: wrapper function
-    :rtype: django Response model
+    :rtype: callable
     """
     def __init__(self, *args, **kwargs) -> None:
         pass
@@ -83,12 +84,12 @@ class ViewRmVaryHeader(BaseDecoratorView, Response):
         @wraps(view)
         def wrapper(request, *args, **kwargs):
             response = view(request, *args, **kwargs)
-            # response.remove_vary = True
+            response.remove_vary = True
             return response
         return wrapper
 
 
-class ViewMethod(BaseDecoratorView, Response):
+class ViewMethod(BaseEndpointDecorator, Response):
     """Django view-decorator for method filtering
 
     :param method: requesst method
@@ -103,7 +104,7 @@ class ViewMethod(BaseDecoratorView, Response):
     :type logger: logging.Logger
 
     :returns: wrapper function
-    :rtype: django Response model
+    :rtype: callable
     """
     def __init__(self, method: list = ['GET'], message: str = 'Метод не поддерживается', status: str = 'error', status_code: int = 400) -> None:
         self.method = method
@@ -120,7 +121,7 @@ class ViewMethod(BaseDecoratorView, Response):
         return wrapper
 
 
-class ViewAuth(BaseDecoratorView, Response):
+class ViewAuth(BaseEndpointDecorator, Response):
     """Django view-decorator with authentification
 
     :param form: used from
@@ -135,7 +136,7 @@ class ViewAuth(BaseDecoratorView, Response):
     :type logger: logging.Logger
 
     :returns: wrapper function
-    :rtype: django Response model
+    :rtype: callable
     """
     def __init__(self, message: str = 'Пользователь не авторизован', status: str = 'error', status_code: int = 401) -> None:
         self.message = message
@@ -147,11 +148,12 @@ class ViewAuth(BaseDecoratorView, Response):
         def wrapper(request, *args, **kwargs):
             if not request.user.is_authenticated:
                 return self.json_response(message=self.message, status=self.status, status_code=self.status_code)
-            return view(request, *args, **kwargs)
+            result = view(request, *args, **kwargs)
+            return result
         return wrapper
 
 
-class ViewExcept(BaseDecoratorView, Response):
+class ViewExcept(BaseEndpointDecorator, Response):
     """Django view-decorator for catching errors
 
     :param message: return message
@@ -164,7 +166,7 @@ class ViewExcept(BaseDecoratorView, Response):
     :type logger: logging.Logger
 
     :returns: wrapper function
-    :rtype: django Response model
+    :rtype: callable
     """
     def __init__(self, message: str = 'Ошибка', status: str = 'error', status_code: int = HTTP_ERROR_CODE, logger=None) -> None:
         self.message = message
@@ -187,7 +189,7 @@ class ViewExcept(BaseDecoratorView, Response):
         return wrapper
 
 
-class ViewForm(BaseDecoratorView, Response):
+class ViewForm(BaseEndpointDecorator, Response):
     """Django view-decorator with specific form usage
 
     :param form: used from
@@ -200,7 +202,7 @@ class ViewForm(BaseDecoratorView, Response):
     :type status_code: int
 
     :returns: wrapper function
-    :rtype: django Response model
+    :rtype: callable
     """
     def __init__(self, form: typing.Union[Form, None] = None, message: str = 'Ошибка входных данных', status: str = 'error', status_code: int = 400) -> None:
         self.form = form
@@ -225,7 +227,7 @@ class ViewForm(BaseDecoratorView, Response):
         return wrapper
 
 
-class ViewInputValidation(BaseDecoratorView, Response):
+class ViewInputValidation(BaseEndpointDecorator, Response):
     """Django view-decorator with specific form usage
 
     :param model: pydantic validation model
@@ -238,7 +240,7 @@ class ViewInputValidation(BaseDecoratorView, Response):
     :type status_code: int
 
     :returns: wrapper function
-    :rtype: django Response model
+    :rtype: callable
     """
     def __init__(self, model: typing.Union[BaseModel, None] = None, message: str = 'Ошибка входных данных', status: str = 'error', status_code: int = 400) -> None:
         self.model = model
@@ -263,4 +265,66 @@ class ViewInputValidation(BaseDecoratorView, Response):
                 return self.json_response(message=f'{self.message}: {errors}', status=self.status, status_code=self.status_code)
             request.pydantic_model = pydantic_model
             return view(request, *args, **kwargs)
+        return wrapper
+
+
+class set_vary_header(BaseEndpointDecorator):
+    """Django-ninja endpoint decorator
+    """
+    def __init__(self, *vary_values: str) -> None:
+        self.vary_header = ", ".join(vary_values)
+
+    def __call__(self, view):
+        @wraps(view)
+        def wrapper(request, *args, **kwargs):
+            request.vary_header = self.vary_header
+            return view(request, *args, **kwargs)
+        return wrapper
+
+
+class handle_exceptions(BaseEndpointDecorator):
+    """Django-ninja endpoint decorator for handling errors
+
+    :param message: return message
+    :type message: str
+    :param logger: logging.Logger object
+    :type logger: logging.Logger
+
+    :returns: wrapper function
+    :rtype: callable
+    """
+    def __init__(self, message: str = 'Ошибка', logger=None) -> None:
+        self.message = message
+        self.logger = logger if logger else logging.getLogger(__name__)
+
+    def __call__(self, view):
+        @wraps(view)
+        def wrapper(request, *args, **kwargs):
+            try:
+                return view(request, *args, **kwargs)
+            except Exception as error:
+                self.logger.error(f"View: {view.__name__}; Error: {error}", stack_info=True)
+                raise UnprocessableEntityError(message=f'{self.message}: {error}') from error
+        return wrapper
+
+
+class authenticated(BaseEndpointDecorator):
+    """Django view-decorator with authentification
+
+    :param message: return message
+    :type message: str
+
+    :returns: wrapper function
+    :rtype: callable
+    """
+    def __init__(self, message: str = 'Unauthorized') -> None:
+        self.message = message
+
+    def __call__(self, view):
+        @wraps(view)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                raise UnauthorizedError(message=f'{self.message}')
+            result = view(request, *args, **kwargs)
+            return result
         return wrapper

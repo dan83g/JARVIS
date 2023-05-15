@@ -7,8 +7,10 @@ from pandas import read_sql
 from .abstract import HandlerAbstractFactory
 from .exceptions import HandlerConnectionError, HandlerExecutionError
 from lib.enum import AdvancedEnum
+import warnings
 
 
+warnings.filterwarnings('ignore')
 SQL_ATTR_CONNECTION_TIMEOUT = 113
 
 

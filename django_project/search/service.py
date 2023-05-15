@@ -6,18 +6,18 @@ from pydantic import validator
 from datetime import datetime
 from django.db.models import Q
 from django.core.cache import cache, InvalidCacheBackendError
-from django.contrib.auth.models import User
 from django.db.models.query import QuerySet
 from .models import types, queries
 from .exceptions import (
     RedisError, RedisGetError, RedisSetError, RedisNoDataError, SearchIdNotDefined,
-    QueriesDoesNotExist, CacheSetError, DBTypesDoNotExist,
+    QueriesDoesNotExist, CacheSetError, DBTypesDoNotExist, SearcherObjectReturnUrl,
     SearcherObjectNotCreated, SearcherObjectExecutionError, SearchValueNotDefined)
 from .searcher import Searchers, Searcher
 from .forms import QueryList, Query
 from lib.log import Log, LoggingHandlers
 from lib.encoders import JsonEncoder
 from lib.ninja_api.schemas import DataResponseDict
+from security.models import User
 from JARVIS.enums import (
     REDIS_HOST, REDIS_PORT, REDIS_DB_CACHE, REDIS_CACHE_TTL,
     QUERY_PAGINATION_LIMIT, QUERY_PAGINATION_OFFSET)
@@ -113,7 +113,7 @@ class TypeDetector:
     def _get_types_from_db(self) -> list[dict]:
         """get regular expressions for parsing input text
 
-        :raises SearchTypesDoesNotExists: if search types was not found in db
+        :raises DBTypesDoNotExist: if search types was not found in db
         :return: List if types
         :rtype: Optional[List[Dict]]
         """
@@ -219,7 +219,7 @@ class Search(DefaultQueryParameters):
     def _get_queries_from_db(self) -> QuerySet:
         """get list of queries
 
-        :raises SearchTypesDoesNotExists: if search types was not found in db
+        :raises QueriesDoesNotExist: if queries does not found in db
         :return: List if types
         :rtype: Optional[List[Dict]]
         """
@@ -311,9 +311,87 @@ class Search(DefaultQueryParameters):
 
 
 @dataclass(kw_only=True)
+class SearchAPI(Search):
+
+    def _get_queries_from_db(self) -> QuerySet:
+        try:
+            return queries.objects.filter(
+                # only active queries
+                Q(active=True),
+                # only active types
+                Q(typename__active=True),
+                # only permitted queries
+                Q(cpi=True),
+            ).prefetch_related('source')
+        except queries.DoesNotExist as error:
+            raise QueriesDoesNotExist() from error
+
+    def _get_query_from_db(self) -> queries | None:
+        """get list of queries
+
+        :raises QueriesDoesNotExist: if query does not found in db
+        :return: List if types
+        :rtype: Optional[List[Dict]]
+        """
+        try:
+            return queries.objects.filter(
+                # only active queries
+                Q(active=True),
+                # only active types
+                Q(typename__active=True),
+                # only for active sources
+                Q(source__active=True),
+                # only permitted queries
+                cpi=True,
+                typename__typename=self.typename,
+                name=self.query
+            ).prefetch_related('source').first()
+        except queries.DoesNotExist as error:
+            raise QueriesDoesNotExist() from error
+
+    def execute(self) -> DataResponseDict:
+        """get query data
+
+        :raises SearchValueNotDefined: if value does not exist
+        :raises SearcherObjectNotCreated: if Sercher object have not been created
+        :raises QueriesDoesNotExist: if query does not exist
+        :raises SearcherObjectReturnUrl: if Searcher return URL
+        :return: query result
+        :rtype: DataResponseDict
+        """
+        if not self.value:
+            raise SearchValueNotDefined()
+
+        # get query from db
+        if not (query := self._get_query_from_db):
+            raise QueriesDoesNotExist()
+
+        # log query
+        if self.log_type != LoggingHandlers.NO:
+            self._log(values=[self.value])
+
+        # init search
+        init_dict: dict = query.serialize(username=self.user.username)
+        init_dict.update(self.as_dict_without_none)
+        try:
+            searcher = Searcher.init_from_dict(initial_dict=init_dict, is_changed=True)
+        except Exception as error:
+            raise SearcherObjectNotCreated(message=f'{error}') from error
+
+        # execute searcher
+        if (result := searcher.execute()) and not result.is_ok:
+            raise SearcherObjectExecutionError(message=result.errors_as_string)
+
+        if result.is_url:
+            raise SearcherObjectReturnUrl()
+
+        return result.as_dict
+
+
+@dataclass(kw_only=True)
 class SearchQuery(DefaultQueryParameters):
+    user: User
     id: str
-    username: str
     value: str | None = None
 
     def __post_init__(self) -> None:
@@ -340,14 +418,15 @@ class SearchQuery(DefaultQueryParameters):
         :raises SearcherObjectNotCreated: if Sercher object have not been created
         :raises SearcherObjectExecutionError: if Sercher execution method have been ececuted with errors
         :return: result of execution method
-        :rtype: str | list[dict] | None
+        :rtype: DataResponseDict
         """
         init_dict: dict = self._get_query_from_redis()
+        init_dict.update(username=self.user.username)
         init_dict.update(self.as_dict_without_none)
         try:
             searcher = Searcher.init_from_dict(initial_dict=init_dict, is_changed=self.is_changed)
         except Exception as error:
-            raise SearcherObjectNotCreated from error
+            raise SearcherObjectNotCreated(message=f'{error}') from error
 
         if (result := searcher.execute()) and not result.is_ok:
             raise SearcherObjectExecutionError(message=result.errors_as_string)

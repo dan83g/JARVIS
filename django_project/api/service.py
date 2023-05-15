@@ -1,18 +1,23 @@
 import pytesseract
 from PIL import Image
 import io
-from django.contrib.auth.models import User
 from .exceptions import (
     UploadFileNotExists, UploadFileUnknownType, TesseractException)
+from security.models import User
 from lib.routine import string_replace
 from JARVIS.enums import TESSERACT_PARAMS
 from typing import Union, Any
+from dataclasses import dataclass
 
 
+@dataclass
 class OCR:
-    def __init__(self, user: User, files: Any) -> None:
-        self._user = user
-        self._files = files
+    user: User
+    file: Any
+
+    # def __init__(self, user: User, file: Any) -> None:
+    #     self._user = user
+    #     self._file = file
 
     def _get_first_image_file(self) -> Union[Any, None]:
         """get file from request
@@ -22,19 +27,30 @@ class OCR:
         :return: Image or None
         :rtype: Union[Any, None]
         """
-        if not self._files:
+        # if not self._files:
+        #     raise UploadFileNotExists()
+
+        # for filename, file in self._files.items():
+        #     # name = request.FILES[filename].name;
+        #     try:
+        #         # file = self._files[filename].read()
+        #         image_file = file.read()
+        #         image = Image.open(io.BytesIO(image_file))
+        #         image.load()
+        #         return image
+        #     except Exception as error:
+        #         raise UploadFileUnknownType() from error
+        if not self.file:
             raise UploadFileNotExists()
 
-        for filename, file in self._files.items():
-            # name = request.FILES[filename].name;
-            try:
-                # file = self._files[filename].read()
-                image_file = file.read()
-                image = Image.open(io.BytesIO(image_file))
-                image.load()
-                return image
-            except Exception as error:
-                raise UploadFileUnknownType() from error
+        try:
+            # file = self._files[filename].read()
+            image_file = self.file.read()
+            image = Image.open(io.BytesIO(image_file))
+            image.load()
+            return image
+        except Exception as error:
+            raise UploadFileUnknownType() from error
 
     def _execute_tesseract(self, image: Any) -> str:
         """execute tesseract

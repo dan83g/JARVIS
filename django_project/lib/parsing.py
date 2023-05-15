@@ -107,12 +107,15 @@ class PythonParser(ParserAbstractFactory):
             _, _, _traceback = sys.exc_info()
             line_number = traceback.extract_tb(_traceback)[-1][1]
             raise ParserException(f'{error.__class__.__name__} at line {line_number}: {error.args[0]}')
-        else:
-            if (not locals['results']
-                    or not isinstance(locals['results'], list)
-                    or not any(isinstance(row_obj, dict) for row_obj in locals['results'])):
-                raise ParserException('Output data is not equel to List[dict]')
-            return locals['results']
+        if (
+            not isinstance(locals['results'], list)
+            or (
+                locals['results']
+                and not all(isinstance(row_obj, dict) for row_obj in locals['results'])
+            )
+        ):
+            raise ParserException('Output data is not equel to list[] or list[dict]')
+        return locals['results']
 
 
 class ParserType(FactoryEnum):

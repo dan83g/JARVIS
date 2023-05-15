@@ -1,4 +1,4 @@
-FROM python:3.7.12-buster
+FROM python:3.10.11-bullseye
 
 # install drivers
 RUN apt-get update -qq \    
@@ -12,6 +12,7 @@ RUN apt-get update -qq \
     unixodbc unixodbc-dev \
     # mssql    
     msodbcsql17 \
+    mssql-tools \
     # postgresql
     odbc-postgresql \
     # mariadb
@@ -21,6 +22,8 @@ RUN apt-get update -qq \
     mysql-connector-odbc \
     # sqllite
     libsqliteodbc \
+    # add to path
+    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bash_profile \
     # clear build
     && rm -rf /var/lib/apt/lists/* \
     # && rm -rf /tmp/*

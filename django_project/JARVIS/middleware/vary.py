@@ -1,14 +1,21 @@
 from django.utils.deprecation import MiddlewareMixin
-# if not needed position of middelware
-# from django.utils.decorators import decorator_from_middleware
-# remove_vary = decorator_from_middleware(RemoveVaryHeader)
 
 
 class RemoveVaryHeader(MiddlewareMixin):
-    """remove VaryHeader if remove_vary-decorator is present
+    """Remove Vary Header
     """
 
     def process_response(self, request, response):
         if hasattr(response, "remove_vary") and "vary" in response.headers:
             del response.headers['vary']
+        return response
+
+
+class SetVaryHeader(MiddlewareMixin):
+    """Middleware to set Vary HTTP Header
+    """
+
+    def process_response(self, request, response):
+        if hasattr(request, "vary_header") and "vary" in response.headers:
+            response.headers['vary'] = request.vary_header
         return response
